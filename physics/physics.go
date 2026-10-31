@@ -210,6 +210,9 @@ type scaledCollider struct {
 	scale glm.Vec3f
 }
 
+// SystemsWriteBack copies the body poses and velocities into the components, in FixedPostUpdate.
+var SystemsWriteBack = &byke.SystemSet{Name: "PhysicsWriteBack"}
+
 func Plugin(app *byke.App) {
 	def := b3.DefaultWorldDef()
 	def.Gravity = b3.Vec3{Y: -9.81}
@@ -222,7 +225,7 @@ func Plugin(app *byke.App) {
 	app.AddSystems(byke.FixedPreUpdate, byke.System(createBodiesSystem, syncKinematicSystem, controlVelocitySystem).Chain())
 	app.AddSystems(byke.FixedUpdate, stepSystem)
 	app.AddMessage[Hit]()
-	app.AddSystems(byke.FixedPostUpdate, writeBackSystem, sensorOverlapsSystem, hitEventsSystem)
+	app.AddSystems(byke.FixedPostUpdate, byke.System(writeBackSystem).InSet(SystemsWriteBack), sensorOverlapsSystem, hitEventsSystem)
 }
 
 // constructorColliders builds the colliders of a ColliderConstructorHierarchy from the meshes below the entity.
