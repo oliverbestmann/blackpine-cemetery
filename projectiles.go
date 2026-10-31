@@ -10,7 +10,7 @@ import (
 const (
 	grenadeSpeed = 22
 	grenadeFuse  = 1.6
-	grenadeScale = 1.6
+	grenadeScale = 0.8
 
 	rocketSpeed = 45
 	rocketLife  = 6

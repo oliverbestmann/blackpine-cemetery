@@ -384,7 +384,7 @@ func muzzleFlashSystem(vt VirtualTime, arsenal *Arsenal, flashes Query[struct {
 	for item := range flashes.Items() {
 		item.Flash.Time += vt.DeltaSecs
 		strength := max(0, 1-item.Flash.Time/0.06)
-		item.Light.Intensity = strength * 60000
+		item.Light.Intensity = strength * 25000
 
 		def := weapons[item.Flash.Kind]
 		offset := muzzleOffset(def, arsenal.side)
