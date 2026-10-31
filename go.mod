@@ -3,6 +3,7 @@ module github.com/oliverbestmann/zombies
 go 1.27.2
 
 require (
+	github.com/oliverbestmann/box3d-go v0.1.1-0.20261024103716-4967c0a096b2
 	github.com/oliverbestmann/byke v0.1.0
 	github.com/oliverbestmann/webgpu v1.37.0 // indirect
 )
