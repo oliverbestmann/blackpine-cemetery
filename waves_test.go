@@ -30,7 +30,7 @@ func TestFirstWaveOnlyWalkers(t *testing.T) {
 		seen[waveKind(8, roll)] = true
 	}
 
-	if len(seen) != 3 {
+	if len(seen) != 4 {
 		t.Fatalf("wave 8 should have all kinds, got %v", seen)
 	}
 }
@@ -49,8 +49,4 @@ func TestSpawnPositionAwayFromPlayer(t *testing.T) {
 			t.Fatalf("zombie spawned outside the arena at %v", pos)
 		}
 	}
-}
-
-func abs32(v float32) float32 {
-	return max(v, -v)
 }

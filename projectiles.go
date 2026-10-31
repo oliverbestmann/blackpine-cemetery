@@ -116,7 +116,8 @@ func grenadeSystem(
 		touching := false
 		if g.Fuse < grenadeFuse-0.1 {
 			for z := range zombies.Items() {
-				if z.Zombie.Rising <= 0 && flat(z.Transform.Translation.Sub(pos)).Length() < zombieRadius*z.Zombie.Scale/2.1+0.4 {
+				offset := z.Transform.Translation.Sub(pos)
+				if z.Zombie.Rising <= 0 && abs32(offset[1]) < 2 && flat(offset).Length() < zombieRadius*z.Zombie.Scale/2.1+0.4 {
 					touching = true
 					break
 				}

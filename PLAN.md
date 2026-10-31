@@ -77,8 +77,8 @@ Mouse wheel / Q cycles weapons. Zombies drop ammo, health and new weapons.
 - [x] M4 zombies: prefab, spawning waves, steering, walk animation, damage player
 - [x] M5 gore: gibs with physics, blood chunks, cleanup limits
 - [x] M6 explosives: rockets, grenades, explosive barrels, point lights, impulses, camera shake
-- [ ] M7 all weapons + pickups/drops + weapon switching
-- [ ] M8 flying enemies (ghosts)
+- [x] M7 all weapons + pickups/drops + weapon switching
+- [x] M8 flying enemies (ghosts)
 - [ ] M9 car: enter/exit (F), drive, run over zombies
 - [ ] M10 sound
 - [ ] M11 game flow: start, waves, death, restart, score

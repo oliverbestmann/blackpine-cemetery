@@ -61,3 +61,7 @@ func lerp(a, b, t float32) float32 {
 func clamp(v, lo, hi float32) float32 {
 	return max(lo, min(hi, v))
 }
+
+func abs32(v float32) float32 {
+	return max(v, -v)
+}

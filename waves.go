@@ -36,11 +36,14 @@ func waveSpawnInterval(wave int) float32 {
 func waveKind(wave int, roll float32) ZombieKind {
 	brute := min(0.12, 0.02*float32(wave-2))
 	runner := min(0.35, 0.08*float32(wave-1))
+	ghost := min(0.12, 0.03*float32(wave-1))
 
 	switch {
-	case roll < brute:
+	case roll < ghost:
+		return ZombieGhost
+	case roll < ghost+brute:
 		return ZombieBrute
-	case roll < brute+runner:
+	case roll < ghost+brute+runner:
 		return ZombieRunner
 	default:
 		return ZombieWalker
@@ -142,6 +145,6 @@ func spawnPosition(rng *GameRng, player glm.Vec3f) glm.Vec3f {
 func spawnDemoCrowdSystem(commands *Commands, models *Models, rng *GameRng) {
 	for idx := range 40 {
 		pos := glm.Vec3f{(rng.Float32()*2 - 1) * 12, 0, -4 - rng.Float32()*20}
-		spawnZombie(commands, models, waveKind(3, rng.Float32()), pos, 0, float32(idx%2)*zombieRiseSecs*rng.Float32())
+		spawnZombie(commands, models, waveKind(5, rng.Float32()), pos, 0, float32(idx%2)*zombieRiseSecs*rng.Float32())
 	}
 }

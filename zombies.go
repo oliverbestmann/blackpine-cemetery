@@ -22,6 +22,9 @@ const (
 
 	// ZombieBrute is a big, slow and tough vampire.
 	ZombieBrute
+
+	// ZombieGhost flies around and dives at the player.
+	ZombieGhost
 )
 
 // zombieKinds are the stats of each kind.
@@ -35,6 +38,7 @@ var zombieKinds = map[ZombieKind]struct {
 	ZombieWalker: {"graveyard/character-zombie", 2.1, 40, 3.2, 8},
 	ZombieRunner: {"graveyard/character-skeleton", 2.0, 20, 6.5, 5},
 	ZombieBrute:  {"graveyard/character-vampire", 3.0, 250, 2.6, 20},
+	ZombieGhost:  {"graveyard/character-ghost", 2.4, 30, 8, 10},
 }
 
 const (
@@ -45,6 +49,12 @@ const (
 
 	zombieAttackRange = 1.5
 	zombieAttackSecs  = 0.9
+
+	// ghosts cruise at this height and dive at the player when close
+	ghostCruiseHeight = 7
+	ghostDiveRange    = 14
+	ghostAttackRange  = 2
+	ghostClimbSecs    = 2.5
 )
 
 // Zombie is the body of a zombie, a capsule moved by physics.
@@ -129,12 +139,21 @@ func spawnZombie(commands *Commands, models *Models, kind ZombieKind, position g
 	length := max(0.1, height-2*radius)
 	halfHeight := height / 2
 
+	y := halfHeight + 0.02
+	layers := physics.CollisionLayers{Category: layerZombie, Mask: layerWorld | layerProp | layerPlayer | layerZombie | layerCar}
+	if kind == ZombieGhost {
+		// ghosts fly through everything but each other
+		y = ghostCruiseHeight + position[1]
+		layers = physics.CollisionLayers{Category: layerFlyer, Mask: layerFlyer}
+		rising = 0
+	}
+
 	zombieId := commands.Spawn(
 		Round{},
-		TransformFromXYZ(position[0], halfHeight+0.02, position[2]),
+		TransformFromXYZ(position[0], y, position[2]),
 		physics.RigidBody{Type: physics.Dynamic, LockRotation: true, Friction: 0.05, Density: 300},
 		physics.ControlledVelocity{},
-		physics.CollisionLayers{Category: layerZombie, Mask: layerWorld | layerProp | layerPlayer | layerZombie | layerCar},
+		layers,
 		physics.CapsuleCollider(radius, length),
 		InheritVisibility,
 	).Id()
@@ -207,6 +226,11 @@ func zombieSteerSystem(
 			continue
 		}
 
+		if z.Kind == ZombieGhost {
+			steerGhost(z, item.Transform.Translation, item.LinearVelocity, player.Player, target, dt)
+			continue
+		}
+
 		velocity := zombieVelocity(pos, target, z.Speed)
 
 		// turn towards the walk direction
@@ -232,6 +256,59 @@ func zombieSteerSystem(
 				camera.Camera.Shake = max(camera.Camera.Shake, 0.6)
 			}
 		}
+	}
+}
+
+// steerGhost flies a ghost: cruise towards the player up high, dive at him when close,
+// climb away after an attack.
+func steerGhost(z *Zombie, pos glm.Vec3f, velocity *physics.LinearVelocity, player *Player, target glm.Vec3f, dt float32) {
+	z.Attack -= dt
+	z.Phase += dt * 4
+
+	toPlayer := flat(target.Sub(pos))
+	distance := toPlayer.Length()
+
+	var goal glm.Vec3f
+	switch {
+	case z.Attack > zombieAttackSecs:
+		// climbing away after a hit
+		goal = pos.Sub(toPlayer.Normalize().Scale(5)).Add(glm.Vec3f{0, 6, 0})
+	case distance < ghostDiveRange && z.Attack <= 0:
+		goal = target.Add(glm.Vec3f{0, 0.3, 0})
+	default:
+		// circle a bit while closing in
+		side := glm.Vec3f{-toPlayer[2], 0, toPlayer[0]}.Normalize().Scale(6 * sin32(z.Phase*0.3))
+		goal = target.Add(side).Add(glm.Vec3f{0, ghostCruiseHeight, 0})
+	}
+
+	dir := goal.Sub(pos)
+	if dir.Length() > 0.1 {
+		dir = dir.Normalize()
+	}
+
+	speed := z.Speed
+	if z.Attack <= 0 && distance < ghostDiveRange {
+		speed *= 1.4
+	}
+
+	if distance > 0.1 {
+		z.Yaw = turnTowards(z.Yaw, yawTowards(toPlayer), glm.Rad(4*dt))
+	}
+
+	z.Knockback = z.Knockback.Scale(decay(4, dt))
+	v := dir.Scale(speed).Add(z.Knockback)
+
+	// never below the ground
+	if pos[1] < 1.5 {
+		v[1] = max(v[1], 2)
+	}
+
+	velocity.Vec3f = v
+
+	if z.Attack <= 0 && target.Sub(pos).Length() < ghostAttackRange && player.Health > 0 && player.Driving == NoEntityId {
+		z.Attack = zombieAttackSecs + ghostClimbSecs
+		player.Health -= zombieKinds[z.Kind].damage
+		player.Damaged = 0.4
 	}
 }
 
