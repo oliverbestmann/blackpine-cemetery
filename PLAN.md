@@ -82,7 +82,7 @@ Mouse wheel / Q cycles weapons. Zombies drop ammo, health and new weapons.
 - [x] M9 car: enter/exit (F), drive, run over zombies
 - [x] M10 sound
 - [ ] M11 game flow: start, waves, death, restart, score
-- [ ] M12 polish: performance with many zombies, balance, README with controls
+- [x] M12 polish: performance with many zombies, balance, README with controls
 
 ## Verification
 
@@ -104,3 +104,5 @@ Mouse wheel / Q cycles weapons. Zombies drop ammo, health and new weapons.
 - Testing env vars: `ZOMBIES_DEMO=1` spawns a crowd in front of the player, `ZOMBIES_AUTOFIRE=1`
   holds the trigger, `ZOMBIES_WEAPON=n` gives all weapons and selects weapon n.
 - Lavapipe renders about 3 frames per second, use frames 100-300 for screenshots.
+- Performance: with 160 zombies the game systems and physics take about 2-3 ms per frame on the
+  CPU (profiled with `BYKE_CPUPROFILE`). GPU cost on real hardware is untested, lavapipe only.
