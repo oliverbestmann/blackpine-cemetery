@@ -281,6 +281,11 @@ func keepClear(pos glm.Vec3f) bool {
 		return true
 	}
 
+	// an open field between the start and the graveyard
+	if math.Abs(float64(pos[0])) < 10 && pos[2] > -25 && pos[2] < 20 {
+		return true
+	}
+
 	rel := pos.Sub(graveyardCenter)
 	return math.Abs(float64(rel[0])) < graveyardHalfWidth+3 && math.Abs(float64(rel[2])) < graveyardHalfDepth+6
 }
@@ -344,7 +349,12 @@ func spawnScenery(commands *Commands, models *Models, rng *rand.Rand) {
 			pos := randomArenaPosition(rng, 6)
 			s := kind.scale
 			transform := TransformFromXYZ(pos.XYZ()).WithRotation(randomYaw(rng)).WithScaleXYZ(s, s, s)
-			spawnProp(commands, model, transform, PropSettings{Dynamic: true, Density: kind.density})
+			var extra []ErasedComponent
+			if kind.name == "survival/barrel" {
+				extra = append(extra, Explosive{Health: barrelHealth})
+			}
+
+			spawnProp(commands, model, transform, PropSettings{Dynamic: true, Density: kind.density}, extra...)
 		}
 	}
 

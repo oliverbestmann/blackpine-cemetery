@@ -218,7 +218,7 @@ func (m *Model) SpawnParts(commands *byke.Commands, parent byke.EntityId, extra 
 			parentId = entities[part.Parent]
 		}
 
-		components := []byke.ErasedComponent{byke.ChildOf{Parent: parentId}, part.Local}
+		components := []byke.ErasedComponent{byke.ChildOf{Parent: parentId}, part.Local, InheritVisibility}
 		if part.Mesh != nil {
 			components = append(components, MeshInstance{Mesh: part.Mesh}, m.Material)
 		}

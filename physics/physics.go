@@ -39,6 +39,9 @@ type RigidBody struct {
 
 	// Bullet enables continuous collision against dynamic bodies, for fast bodies.
 	Bullet bool
+
+	// Restitution makes the shapes bouncy, zero means no bounce.
+	Restitution float32
 }
 
 // CollisionLayers sets the collision filter of all shapes of a body. Two shapes collide if
@@ -374,6 +377,8 @@ func createBodiesSystem(
 		if item.RigidBody.Friction > 0 {
 			shapeDef.BaseMaterial.Friction = item.RigidBody.Friction
 		}
+
+		shapeDef.BaseMaterial.Restitution = item.RigidBody.Restitution
 
 		if layers, ok := item.Layers.Get(); ok {
 			shapeDef.Filter.CategoryBits = layers.Category

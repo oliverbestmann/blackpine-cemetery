@@ -1,15 +1,18 @@
 package main
 
 import (
+	"fmt"
 	"image"
 	"image/png"
 	"log/slog"
 	"os"
 	"strconv"
+	"time"
 
 	. "github.com/oliverbestmann/byke"
 	. "github.com/oliverbestmann/byke/byke2d"
 	"github.com/oliverbestmann/byke/byke2d/glm"
+	"github.com/oliverbestmann/byke/byke2d/vyn"
 	"github.com/oliverbestmann/zombies/physics"
 )
 
@@ -65,21 +68,31 @@ func gamePlugin(app *App) {
 	app.InitState(GameStateLoading)
 	app.InsertResource(SoundBudget{})
 	app.InsertResource(Stats{})
-	app.InsertResource(Arsenal{})
+	app.InsertResource(newArsenal())
+	app.InsertResource(AutoFire{Enabled: os.Getenv("ZOMBIES_AUTOFIRE") != ""})
 
 	app.AddSystems(Startup, startLoadingSystem, spawnLoadingScreenSystem)
 	app.AddSystems(Update, System(finishLoadingSystem).RunIf(InState(GameStateLoading)))
 	app.AddSystems(First, resetSoundBudgetSystem)
 	app.AddSystems(OnEnter(GameStatePlaying), startRoundSystem)
 	app.AddSystems(Update, ExitOnEscapeSystem)
+	app.AddSystems(Update, System(deathSystem).RunIf(InState(GameStatePlaying)))
+	app.AddSystems(Update, System(restartSystem).RunIf(InState(GameStateDead)))
 
 	worldPlugin(app)
 	playerPlugin(app)
 	hudPlugin(app)
+	zombiesPlugin(app)
+	gibsPlugin(app)
+	wavesPlugin(app)
+	particlesPlugin(app)
+	explosionsPlugin(app)
+	weaponsPlugin(app)
+	projectilesPlugin(app)
 }
 
 // startRoundSystem replaces the world of the last round with a fresh one.
-func startRoundSystem(commands *Commands, rounds Query[struct {
+func startRoundSystem(commands *Commands, arsenal *Arsenal, waves *Waves, rounds Query[struct {
 	_        With[Round]
 	EntityId EntityId
 }],
@@ -89,9 +102,15 @@ func startRoundSystem(commands *Commands, rounds Query[struct {
 	}
 
 	commands.InsertResource(Stats{Wave: 1})
+	*arsenal = newArsenal()
+	startWaves(waves)
 	commands.RunSystem(spawnWorldSystem)
 	commands.RunSystem(spawnPlayerSystem)
 	commands.RunSystem(spawnHudSystem)
+
+	if os.Getenv("ZOMBIES_DEMO") != "" {
+		commands.RunSystem(spawnDemoCrowdSystem)
+	}
 }
 
 func spawnLoadingScreenSystem(commands *Commands) {
@@ -143,4 +162,21 @@ func addScreenshot(app *App, path string, frame int) {
 	})
 
 	app.InsertResource(GlobalVolume{Volume: 0})
+}
+
+// deathSystem ends the round when the player died.
+func deathSystem(vt VirtualTime, stats *Stats, state *NextState[GameState], players Query[Player]) {
+	player, ok := players.Single()
+	if !ok || player.Health > 0 {
+		return
+	}
+
+	stats.Show(vt, fmt.Sprintf("YOU GOT EATEN\n%d KILLS - PRESS R TO RISE AGAIN", stats.Kills), time.Hour)
+	state.Set(GameStateDead)
+}
+
+func restartSystem(keys Keys, state *NextState[GameState]) {
+	if keys.IsJustPressed(vyn.KeyR) {
+		state.Set(GameStatePlaying)
+	}
 }

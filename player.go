@@ -71,7 +71,7 @@ func playerPlugin(app *App) {
 
 var playerStart = glm.Vec3f{0, playerHalfHeight + 0.05, 10}
 
-func spawnPlayerSystem(commands *Commands, assets *GameAssets) {
+func spawnPlayerSystem(commands *Commands, assets *GameAssets, models *Models) {
 	commands.Spawn(
 		Round{},
 		Player{Health: playerMaxHealth, previous: playerStart, current: playerStart},
@@ -82,9 +82,11 @@ func spawnPlayerSystem(commands *Commands, assets *GameAssets) {
 		physics.CapsuleCollider(playerRadius, playerCapsuleLength),
 	)
 
-	commands.Spawn(
+	camera := commands.Spawn(
 		Round{},
 		PlayerCamera{},
+		// the view models are children, they need a visible root
+		InheritVisibility,
 		Camera{},
 		Camera3d,
 		HDR{},
@@ -98,7 +100,9 @@ func spawnPlayerSystem(commands *Commands, assets *GameAssets) {
 		microphone,
 		PerspectiveProjection{Fov: glm.DegToRad(80), Near: 0.05, Far: 1000},
 		TransformFromXYZ(playerStart.Add(glm.Vec3f{0, playerEyeOffset, 0}).XYZ()),
-	)
+	).Id()
+
+	spawnViewModels(commands, models, camera)
 }
 
 const (

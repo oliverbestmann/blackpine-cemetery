@@ -9,6 +9,7 @@ import (
 
 	. "github.com/oliverbestmann/byke"
 	. "github.com/oliverbestmann/byke/byke2d"
+	"github.com/oliverbestmann/byke/byke2d/glm"
 	"github.com/oliverbestmann/byke/byke2d/gltf"
 	"github.com/oliverbestmann/webgpu/wgpu"
 )
@@ -108,6 +109,22 @@ type GameAssets struct {
 	Sounds           Sounds
 	WhiteTexture     *Texture
 	CrosshairTexture *Texture
+
+	// simple meshes for particles and effects
+	Cube, Sphere *Mesh
+
+	BloodMaterial, DustMaterial, TracerMaterial StandardMaterial
+	FireMaterial, SmokeMaterial, RocketMaterial StandardMaterial
+}
+
+// glowing returns a material that glows with the given color, for bloom.
+// byke adds the emissive color after exposure, so values are in output units.
+func glowing(r, g, b float32) StandardMaterial {
+	return StandardMaterial{BaseColor: ColorBlack, EmissiveScale: glm.Vec3f{r, g, b}, PerceptualRoughness: 1}
+}
+
+func plain(color Color, roughness float32) StandardMaterial {
+	return StandardMaterial{BaseColor: color, PerceptualRoughness: roughness}
 }
 
 // loadingAssets are the assets while they load.
@@ -236,6 +253,14 @@ func finishLoadingSystem(ctx *RenderContext, commands *Commands, loading *loadin
 		Sounds:           loading.sounds.await(),
 		WhiteTexture:     whiteTexture(ctx),
 		CrosshairTexture: crosshairTexture(ctx),
+		Cube:             Cube(),
+		Sphere:           Sphere(0.5, 8, 6),
+		BloodMaterial:    plain(ColorSRGB(0.35, 0.01, 0.01), 0.3),
+		DustMaterial:     plain(ColorSRGB(0.45, 0.38, 0.3), 1),
+		SmokeMaterial:    plain(ColorSRGB(0.12, 0.11, 0.1), 1),
+		RocketMaterial:   plain(ColorSRGB(0.3, 0.32, 0.3), 0.5),
+		TracerMaterial:   glowing(6, 3.5, 1),
+		FireMaterial:     glowing(12, 4, 0.8),
 	})
 
 	state.Set(GameStatePlaying)
