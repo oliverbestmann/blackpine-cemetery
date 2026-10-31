@@ -89,6 +89,7 @@ func gamePlugin(app *App) {
 	explosionsPlugin(app)
 	weaponsPlugin(app)
 	projectilesPlugin(app)
+	pickupsPlugin(app)
 }
 
 // startRoundSystem replaces the world of the last round with a fresh one.

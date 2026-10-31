@@ -193,13 +193,13 @@ func spawnExplosionEffect(commands *Commands, assets *GameAssets, rng *GameRng, 
 	}
 
 	// smoke rises slowly
-	for range 8 {
-		s := (0.8 + rng.Float32()) * size
+	for range 5 {
+		s := (0.5 + 0.6*rng.Float32()) * size
 		spawnParticle(commands, assets.Sphere, assets.SmokeMaterial, pos.Add(randomInSphere(rng.Rand).Scale(size*1.5)), Particle{
 			Velocity:   randomInSphere(rng.Rand).Scale(2).Add(glm.Vec3f{0, 3, 0}),
 			Gravity:    -1,
 			Drag:       1.5,
-			Life:       1.5 + rng.Float32(),
+			Life:       1 + rng.Float32()*0.6,
 			StartScale: glm.Vec3f{s, s, s},
 			EndScale:   glm.Vec3f{s, s, s}.Scale(0.1),
 		})

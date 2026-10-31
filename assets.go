@@ -257,7 +257,7 @@ func finishLoadingSystem(ctx *RenderContext, commands *Commands, loading *loadin
 		Sphere:           Sphere(0.5, 8, 6),
 		BloodMaterial:    plain(ColorSRGB(0.35, 0.01, 0.01), 0.3),
 		DustMaterial:     plain(ColorSRGB(0.45, 0.38, 0.3), 1),
-		SmokeMaterial:    plain(ColorSRGB(0.3, 0.28, 0.26), 1),
+		SmokeMaterial:    plain(ColorSRGB(0.45, 0.42, 0.4), 1),
 		RocketMaterial:   plain(ColorSRGB(0.3, 0.32, 0.3), 0.5),
 		TracerMaterial:   glowing(6, 3.5, 1),
 		FireMaterial:     glowing(12, 4, 0.8),
