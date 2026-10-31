@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"math"
+	"os"
+	"strconv"
 	"time"
 
 	. "github.com/oliverbestmann/byke"
@@ -143,7 +145,12 @@ func spawnPosition(rng *GameRng, player glm.Vec3f) glm.Vec3f {
 
 // spawnDemoCrowdSystem spawns a crowd right in front of the player, for screenshots.
 func spawnDemoCrowdSystem(commands *Commands, models *Models, rng *GameRng) {
-	for idx := range 40 {
+	count, err := strconv.Atoi(os.Getenv("ZOMBIES_DEMO"))
+	if err != nil || count < 2 {
+		count = 40
+	}
+
+	for idx := range count {
 		pos := glm.Vec3f{(rng.Float32()*2 - 1) * 12, 0, -4 - rng.Float32()*20}
 		spawnZombie(commands, models, waveKind(5, rng.Float32()), pos, 0, float32(idx%2)*zombieRiseSecs*rng.Float32())
 	}
