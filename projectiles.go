@@ -179,8 +179,8 @@ func rocketSystem(
 		// a smoke trail
 		r.smoke -= dt
 		if r.smoke <= 0 {
-			r.smoke = 0.015
-			s := 0.25 + rng.Float32()*0.15
+			r.smoke = 0.025
+			s := 0.15 + rng.Float32()*0.1
 			spawnParticle(commands, assets.Sphere, assets.SmokeMaterial, pos, Particle{
 				Velocity:   randomInSphere(rng.Rand).Scale(0.6).Add(glm.Vec3f{0, 0.5, 0}),
 				Drag:       1,

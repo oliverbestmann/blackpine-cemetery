@@ -76,28 +76,28 @@ var weapons = [weaponCount]WeaponDef{
 		Interval: 0.09, Damage: 16, Pellets: 1, Spread: 0.015, Push: 3,
 		StartAmmo: 400, MaxAmmo: 999, PickupAmmo: 150,
 		Sound: func(s *Sounds) SoundSet { return s.ShotSmall }, Volume: 0.35, Kick: 0.012,
-		ViewOffset: glm.Vec3f{0.28, -0.3, -0.55}, ViewScale: 0.9,
+		ViewOffset: glm.Vec3f{0.28, -0.3, -0.55}, ViewScale: 0.6,
 	},
 	DualUzi: {
 		Name: "DOUBLE UZI", Model: "blaster/blaster-c", Dual: true,
 		Interval: 0.05, Damage: 11, Pellets: 1, Spread: 0.05, Push: 2,
 		StartAmmo: 0, MaxAmmo: 999, PickupAmmo: 200,
 		Sound: func(s *Sounds) SoundSet { return s.ShotRetro }, Volume: 0.25, Kick: 0.008,
-		ViewOffset: glm.Vec3f{0.3, -0.28, -0.5}, ViewScale: 0.75,
+		ViewOffset: glm.Vec3f{0.3, -0.28, -0.5}, ViewScale: 0.5,
 	},
 	Shotgun: {
 		Name: "SHOTGUN", Model: "blaster/blaster-d",
 		Interval: 0.7, Damage: 14, Pellets: 12, Spread: 0.09, Push: 8,
 		StartAmmo: 0, MaxAmmo: 200, PickupAmmo: 30,
 		Sound: func(s *Sounds) SoundSet { return s.ShotLarge }, Volume: 0.6, Kick: 0.08,
-		ViewOffset: glm.Vec3f{0.28, -0.3, -0.6}, ViewScale: 1.0,
+		ViewOffset: glm.Vec3f{0.28, -0.3, -0.6}, ViewScale: 0.65,
 	},
 	Gatling: {
 		Name: "GATLING GUN", Model: "blaster/blaster-h",
 		Interval: 0.022, SpinUp: 0.6, Damage: 13, Pellets: 1, Spread: 0.04, Push: 3,
 		StartAmmo: 0, MaxAmmo: 1999, PickupAmmo: 500,
 		Sound: func(s *Sounds) SoundSet { return s.ShotSmall }, Volume: 0.18, Kick: 0.006,
-		ViewOffset: glm.Vec3f{0.3, -0.32, -0.6}, ViewScale: 1.3,
+		ViewOffset: glm.Vec3f{0.3, -0.32, -0.6}, ViewScale: 0.75,
 	},
 	GrenadeLauncher: {
 		Name: "GRENADE LAUNCHER", Model: "blaster/blaster-k",
@@ -105,7 +105,7 @@ var weapons = [weaponCount]WeaponDef{
 		Projectile: GrenadeShot,
 		StartAmmo:  0, MaxAmmo: 150, PickupAmmo: 20,
 		Sound: func(s *Sounds) SoundSet { return s.Launch }, Volume: 0.5, Kick: 0.05,
-		ViewOffset: glm.Vec3f{0.3, -0.3, -0.6}, ViewScale: 1.1,
+		ViewOffset: glm.Vec3f{0.3, -0.3, -0.6}, ViewScale: 0.65,
 	},
 	RocketLauncher: {
 		Name: "ROCKET LAUNCHER", Model: "blaster/blaster-r",
@@ -113,7 +113,7 @@ var weapons = [weaponCount]WeaponDef{
 		Projectile: RocketShot,
 		StartAmmo:  0, MaxAmmo: 100, PickupAmmo: 15,
 		Sound: func(s *Sounds) SoundSet { return s.Launch }, Volume: 0.6, Kick: 0.06,
-		ViewOffset: glm.Vec3f{0.3, -0.3, -0.55}, ViewScale: 1.2,
+		ViewOffset: glm.Vec3f{0.3, -0.3, -0.55}, ViewScale: 0.7,
 	},
 }
 

@@ -103,6 +103,15 @@ func startRoundSystem(commands *Commands, arsenal *Arsenal, waves *Waves, rounds
 
 	commands.InsertResource(Stats{Wave: 1})
 	*arsenal = newArsenal()
+
+	// for testing: all weapons, starting with the given one
+	if weapon, err := strconv.Atoi(os.Getenv("ZOMBIES_WEAPON")); err == nil {
+		for kind := range weaponCount {
+			arsenal.Give(kind)
+		}
+
+		arsenal.Select(WeaponKind(weapon))
+	}
 	startWaves(waves)
 	commands.RunSystem(spawnWorldSystem)
 	commands.RunSystem(spawnPlayerSystem)

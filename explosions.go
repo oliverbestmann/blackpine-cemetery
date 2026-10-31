@@ -129,7 +129,7 @@ func explosionSystem(
 			damages.Write(ZombieDamage{
 				Zombie:    z.EntityId,
 				Amount:    amount,
-				Push:      dir.Scale(6 + 14*amount/ex.Damage),
+				Push:      dir.Scale(5 + 10*amount/ex.Damage),
 				Point:     z.Transform.Translation,
 				Explosive: true,
 			})

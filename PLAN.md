@@ -71,12 +71,12 @@ Mouse wheel / Q cycles weapons. Zombies drop ammo, health and new weapons.
 ## Milestones and tasks
 
 - [x] M0 scaffold app, screenshot hook
-- [ ] M1 world: assets imported, ground, sky + IBL, sun with shadows following the player, props
-- [ ] M2 player: mouse look, WASD, jump, physics capsule, collision with props
-- [ ] M3 weapons: machine gun hitscan, view model, muzzle flash, HUD crosshair + ammo
-- [ ] M4 zombies: prefab, spawning waves, steering, walk animation, damage player
-- [ ] M5 gore: gibs with physics, blood chunks, cleanup limits
-- [ ] M6 explosives: rockets, grenades, explosive barrels, point lights, impulses, camera shake
+- [x] M1 world: assets imported, ground, sky + IBL, sun with shadows following the player, props
+- [x] M2 player: mouse look, WASD, jump, physics capsule, collision with props
+- [x] M3 weapons: machine gun hitscan, view model, muzzle flash, HUD crosshair + ammo
+- [x] M4 zombies: prefab, spawning waves, steering, walk animation, damage player
+- [x] M5 gore: gibs with physics, blood chunks, cleanup limits
+- [x] M6 explosives: rockets, grenades, explosive barrels, point lights, impulses, camera shake
 - [ ] M7 all weapons + pickups/drops + weapon switching
 - [ ] M8 flying enemies (ghosts)
 - [ ] M9 car: enter/exit (F), drive, run over zombies
@@ -94,4 +94,13 @@ Mouse wheel / Q cycles weapons. Zombies drop ammo, health and new weapons.
 
 ## Notes / decisions
 
-(filled in while working)
+- Own glTF loader (`model.go`) instead of SceneRoot, so meshes are shared and batched. Zombies
+  are built from the 6 parts of the Kenney character models and animated procedurally.
+- Zombies and the player are dynamic capsules with locked rotation, their velocity is set each
+  frame (`physics.ControlledVelocity`). Physics resolves crowds and props.
+- Every entity with a mesh below another entity needs a `Visibility` on all its ancestors. byke
+  stops propagating visibility at entities without one, the mesh stays invisible.
+- byke adds the emissive color after exposure, so emissive values are in output units (~1-10).
+- Testing env vars: `ZOMBIES_DEMO=1` spawns a crowd in front of the player, `ZOMBIES_AUTOFIRE=1`
+  holds the trigger, `ZOMBIES_WEAPON=n` gives all weapons and selects weapon n.
+- Lavapipe renders about 3 frames per second, use frames 100-300 for screenshots.
