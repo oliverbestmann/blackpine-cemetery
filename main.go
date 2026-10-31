@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	. "github.com/oliverbestmann/byke"
@@ -94,10 +95,11 @@ func gamePlugin(app *App) {
 	projectilesPlugin(app)
 	pickupsPlugin(app)
 	carPlugin(app)
+	soundsPlugin(app)
 }
 
 // startRoundSystem replaces the world of the last round with a fresh one.
-func startRoundSystem(commands *Commands, arsenal *Arsenal, waves *Waves, rounds Query[struct {
+func startRoundSystem(vt VirtualTime, commands *Commands, arsenal *Arsenal, waves *Waves, rounds Query[struct {
 	_        With[Round]
 	EntityId EntityId
 }],
@@ -106,7 +108,9 @@ func startRoundSystem(commands *Commands, arsenal *Arsenal, waves *Waves, rounds
 		commands.Entity(item.EntityId).Despawn()
 	}
 
-	commands.InsertResource(Stats{Wave: 1})
+	stats := Stats{Wave: 1}
+	stats.Show(vt, "THE DEAD ARE RISING\nWASD + MOUSE - 1-6 WEAPONS - F CAR", 5*time.Second)
+	commands.InsertResource(stats)
 	*arsenal = newArsenal()
 
 	// for testing: all weapons, starting with the given one
@@ -154,9 +158,18 @@ func spawnLoadingScreenSystem(commands *Commands) {
 func addScreenshot(app *App, path string, frame int) {
 	frame -= frame % 10
 
+	// the dump fires once per camera, the HUD camera comes second
+	var count int
+
 	app.AddPlugin(PluginDebugDumpCamera(func(frameIndex int, im *image.NRGBA) error {
 		if frameIndex != frame {
 			return nil
+		}
+
+		count++
+		path := path
+		if count > 1 {
+			path = fmt.Sprintf("%s.%d.png", strings.TrimSuffix(path, ".png"), count)
 		}
 
 		fp, err := os.Create(path)

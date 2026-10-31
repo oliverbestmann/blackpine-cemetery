@@ -80,7 +80,7 @@ Mouse wheel / Q cycles weapons. Zombies drop ammo, health and new weapons.
 - [x] M7 all weapons + pickups/drops + weapon switching
 - [x] M8 flying enemies (ghosts)
 - [x] M9 car: enter/exit (F), drive, run over zombies
-- [ ] M10 sound
+- [x] M10 sound
 - [ ] M11 game flow: start, waves, death, restart, score
 - [ ] M12 polish: performance with many zombies, balance, README with controls
 

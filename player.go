@@ -102,7 +102,7 @@ func spawnPlayerSystem(commands *Commands, assets *GameAssets, models *Models) {
 		TransformFromXYZ(playerStart.Add(glm.Vec3f{0, playerEyeOffset, 0}).XYZ()),
 	).Id()
 
-	spawnViewModels(commands, models, camera)
+	spawnViewModels(commands, models, assets, camera)
 }
 
 const (

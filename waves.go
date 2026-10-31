@@ -59,7 +59,7 @@ func wavesPlugin(app *App) {
 }
 
 func startWaves(waves *Waves) {
-	*waves = Waves{pending: waveSize(1), pause: 2}
+	*waves = Waves{pending: waveSize(1), pause: 5}
 }
 
 func waveSystem(

@@ -98,7 +98,7 @@ func spawnHudSystem(commands *Commands, assets *GameAssets) {
 	text(hudAmmo, HudPin{Screen: glm.Vec2f{1, -1}, Offset: glm.Vec2f{-30, 30}}, AnchorBottomRight, 48)
 	text(hudScore, HudPin{Screen: glm.Vec2f{1, 1}, Offset: glm.Vec2f{-30, -30}}, AnchorTopRight, 36)
 	text(hudWave, HudPin{Screen: glm.Vec2f{-1, 1}, Offset: glm.Vec2f{30, -30}}, AnchorTopLeft, 36)
-	text(hudMessage, HudPin{Screen: glm.Vec2f{0, 0}, Offset: glm.Vec2f{0, 180}}, AnchorCenter, 64)
+	text(hudMessage, HudPin{Screen: glm.Vec2f{0, 0}, Offset: glm.Vec2f{0, 180}}, AnchorCenter, 48)
 }
 
 // hudSize returns the visible hud area in hud units.

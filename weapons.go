@@ -76,28 +76,28 @@ var weapons = [weaponCount]WeaponDef{
 		Interval: 0.09, Damage: 16, Pellets: 1, Spread: 0.015, Push: 3,
 		StartAmmo: 400, MaxAmmo: 999, PickupAmmo: 150,
 		Sound: func(s *Sounds) SoundSet { return s.ShotSmall }, Volume: 0.35, Kick: 0.012,
-		ViewOffset: glm.Vec3f{0.28, -0.3, -0.55}, ViewScale: 0.6,
+		ViewOffset: glm.Vec3f{0.28, -0.25, -0.55}, ViewScale: 0.6,
 	},
 	DualUzi: {
 		Name: "DOUBLE UZI", Model: "blaster/blaster-c", Dual: true,
 		Interval: 0.05, Damage: 11, Pellets: 1, Spread: 0.05, Push: 2,
 		StartAmmo: 0, MaxAmmo: 999, PickupAmmo: 200,
 		Sound: func(s *Sounds) SoundSet { return s.ShotRetro }, Volume: 0.25, Kick: 0.008,
-		ViewOffset: glm.Vec3f{0.3, -0.28, -0.5}, ViewScale: 0.5,
+		ViewOffset: glm.Vec3f{0.3, -0.23, -0.5}, ViewScale: 0.5,
 	},
 	Shotgun: {
 		Name: "SHOTGUN", Model: "blaster/blaster-d",
 		Interval: 0.7, Damage: 14, Pellets: 12, Spread: 0.09, Push: 8,
 		StartAmmo: 0, MaxAmmo: 200, PickupAmmo: 30,
 		Sound: func(s *Sounds) SoundSet { return s.ShotLarge }, Volume: 0.6, Kick: 0.08,
-		ViewOffset: glm.Vec3f{0.28, -0.3, -0.6}, ViewScale: 0.65,
+		ViewOffset: glm.Vec3f{0.28, -0.25, -0.6}, ViewScale: 0.65,
 	},
 	Gatling: {
 		Name: "GATLING GUN", Model: "blaster/blaster-h",
 		Interval: 0.022, SpinUp: 0.6, Damage: 13, Pellets: 1, Spread: 0.04, Push: 3,
 		StartAmmo: 0, MaxAmmo: 1999, PickupAmmo: 500,
 		Sound: func(s *Sounds) SoundSet { return s.ShotSmall }, Volume: 0.18, Kick: 0.006,
-		ViewOffset: glm.Vec3f{0.3, -0.32, -0.6}, ViewScale: 0.75,
+		ViewOffset: glm.Vec3f{0.3, -0.27, -0.6}, ViewScale: 0.75,
 	},
 	GrenadeLauncher: {
 		Name: "GRENADE LAUNCHER", Model: "blaster/blaster-k",
@@ -105,7 +105,7 @@ var weapons = [weaponCount]WeaponDef{
 		Projectile: GrenadeShot,
 		StartAmmo:  0, MaxAmmo: 150, PickupAmmo: 20,
 		Sound: func(s *Sounds) SoundSet { return s.Launch }, Volume: 0.5, Kick: 0.05,
-		ViewOffset: glm.Vec3f{0.3, -0.3, -0.6}, ViewScale: 0.65,
+		ViewOffset: glm.Vec3f{0.3, -0.25, -0.6}, ViewScale: 0.65,
 	},
 	RocketLauncher: {
 		Name: "ROCKET LAUNCHER", Model: "blaster/blaster-r",
@@ -113,7 +113,7 @@ var weapons = [weaponCount]WeaponDef{
 		Projectile: RocketShot,
 		StartAmmo:  0, MaxAmmo: 100, PickupAmmo: 15,
 		Sound: func(s *Sounds) SoundSet { return s.Launch }, Volume: 0.6, Kick: 0.06,
-		ViewOffset: glm.Vec3f{0.3, -0.3, -0.55}, ViewScale: 0.7,
+		ViewOffset: glm.Vec3f{0.3, -0.25, -0.55}, ViewScale: 0.7,
 	},
 }
 
@@ -239,6 +239,10 @@ type ViewModel struct {
 // MuzzleFlash is the light at the muzzle, it flashes when firing.
 type MuzzleFlash struct {
 	Component[MuzzleFlash]
+	Kind WeaponKind
+
+	// Glow is the visible flash, a child entity.
+	Glow EntityId
 	Time float32
 }
 
@@ -270,7 +274,7 @@ func weaponSelectSystem(keys Keys, arsenal *Arsenal) {
 }
 
 // spawnViewModels spawns the view models of all weapons below the camera, hidden until selected.
-func spawnViewModels(commands *Commands, models *Models, camera EntityId) {
+func spawnViewModels(commands *Commands, models *Models, assets *GameAssets, camera EntityId) {
 	for kind, def := range weapons {
 		sides := 1
 		if def.Dual {
@@ -289,19 +293,27 @@ func spawnViewModels(commands *Commands, models *Models, camera EntityId) {
 
 			commands.Spawn(
 				ChildOf{Parent: gun},
-				// the Kenney blasters point along +z, the camera looks along -z
-				NewTransform().WithRotation(glm.RotationYQuat(math.Pi)),
+				// the Kenney blasters point along -z, like the camera
+				NewTransform(),
 				MeshInstance{Mesh: model.Merged},
 				model.Material,
 				NotShadowCaster{},
 			)
 		}
 
-		// a light at the muzzle of each weapon
+		// a light and a glow at the muzzle of each weapon
+		glow := commands.Spawn(
+			ChildOf{Parent: camera},
+			TransformFromXYZ(muzzleOffset(def, 0).XYZ()).WithScaleXYZ(1e-4, 1e-4, 1e-4),
+			MeshInstance{Mesh: assets.Sphere},
+			assets.FireMaterial,
+			NotShadowCaster{},
+		).Id()
+
 		commands.Spawn(
 			ChildOf{Parent: camera},
-			TransformFromXYZ(def.ViewOffset[0], def.ViewOffset[1]+0.1, def.ViewOffset[2]-0.5),
-			MuzzleFlash{Time: 1},
+			TransformFromXYZ(muzzleOffset(def, 0).XYZ()),
+			MuzzleFlash{Kind: WeaponKind(kind), Time: 1, Glow: glow},
 			PointLight{Color: ColorSRGB(1, 0.7, 0.3), Intensity: 0, Range: 12},
 		)
 	}
@@ -363,15 +375,37 @@ func viewModelSystem(
 	}
 }
 
-func muzzleFlashSystem(vt VirtualTime, flashes Query[struct {
-	Flash *MuzzleFlash
-	Light *PointLight
-}],
+func muzzleFlashSystem(vt VirtualTime, arsenal *Arsenal, flashes Query[struct {
+	Flash     *MuzzleFlash
+	Light     *PointLight
+	Transform *Transform
+}], glows Query[*Transform],
 ) {
 	for item := range flashes.Items() {
 		item.Flash.Time += vt.DeltaSecs
-		item.Light.Intensity = max(0, 1-item.Flash.Time/0.06) * 60000
+		strength := max(0, 1-item.Flash.Time/0.06)
+		item.Light.Intensity = strength * 60000
+
+		def := weapons[item.Flash.Kind]
+		offset := muzzleOffset(def, arsenal.side)
+		item.Transform.Translation = offset
+
+		if glow, ok := glows.Get(item.Flash.Glow); ok {
+			s := max(strength*0.12*def.ViewScale, 1e-4)
+			glow.Translation = offset
+			glow.Scale = glm.Vec3f{s, s, s * 2}
+		}
 	}
+}
+
+// muzzleOffset is the muzzle position in the camera frame. side 1 is the left gun of dual weapons.
+func muzzleOffset(def WeaponDef, side int) glm.Vec3f {
+	offset := def.ViewOffset.Add(glm.Vec3f{0, 0.06 * def.ViewScale, -0.45 * def.ViewScale})
+	if def.Dual && side == 1 {
+		offset[0] = -offset[0]
+	}
+
+	return offset
 }
 
 // fireSystem fires the current weapon while the left mouse button is held.
@@ -422,12 +456,7 @@ func fireSystem(
 		camera.Camera.Kick += def.Kick
 		arsenal.side = 1 - arsenal.side
 
-		muzzleOffset := def.ViewOffset.Add(glm.Vec3f{0, 0.08, -0.45 * def.ViewScale})
-		if def.Dual && arsenal.side == 1 {
-			muzzleOffset[0] = -muzzleOffset[0]
-		}
-
-		muzzle := origin.Add(rotation.Transform(muzzleOffset))
+		muzzle := origin.Add(rotation.Transform(muzzleOffset(def, arsenal.side)))
 
 		playUI(commands, budget, def.Sound(&assets.Sounds), def.Volume)
 
@@ -448,7 +477,9 @@ func fireSystem(
 	}
 
 	for flash := range flashes.Items() {
-		flash.Time = 0
+		if flash.Kind == arsenal.Current {
+			flash.Time = 0
+		}
 	}
 }
 

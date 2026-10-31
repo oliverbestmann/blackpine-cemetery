@@ -7,6 +7,7 @@ import (
 	. "github.com/oliverbestmann/byke"
 	. "github.com/oliverbestmann/byke/byke2d"
 	"github.com/oliverbestmann/byke/byke2d/glm"
+	"github.com/oliverbestmann/zombies/physics"
 )
 
 // SoundSet is a group of variations of one sound, a random one plays.
@@ -144,4 +145,62 @@ func playUI(commands *Commands, budget *SoundBudget, set SoundSet, volume float3
 		AudioPlayerOf(set.pick()),
 		PlaybackSettingsDespawn.WithVolume(float64(volume)),
 	)
+}
+
+// impactSoundSystem plays a thud when things crash into each other.
+func impactSoundSystem(commands *Commands, budget *SoundBudget, assets *GameAssets, hits *MessageReader[physics.Hit]) {
+	played := 0
+	for _, hit := range hits.Read() {
+		// keep a few for the guns
+		if hit.Speed < 4 || played >= 2 {
+			continue
+		}
+
+		played++
+
+		set := assets.Sounds.Wood
+		switch {
+		case hit.Speed > 12:
+			set = assets.Sounds.Metal
+		case hit.Speed > 7:
+			set = assets.Sounds.Plate
+		}
+
+		playAt(commands, budget, set, hit.Point, min(1, hit.Speed/15))
+	}
+}
+
+// Footsteps times the player's steps.
+type Footsteps struct {
+	distance float32
+}
+
+const stepLength = 2.2
+
+func footstepSystem(
+	vt VirtualTime,
+	commands *Commands,
+	budget *SoundBudget,
+	assets *GameAssets,
+	steps *Footsteps,
+	players Query[struct {
+		Player         Player
+		LinearVelocity physics.LinearVelocity
+	}],
+) {
+	player, ok := players.Single()
+	if !ok || !player.Player.Grounded || player.Player.Driving != NoEntityId {
+		return
+	}
+
+	steps.distance += flat(player.LinearVelocity.Vec3f).Length() * vt.DeltaSecs
+	if steps.distance > stepLength {
+		steps.distance = 0
+		playUI(commands, budget, assets.Sounds.Footstep, 0.25)
+	}
+}
+
+func soundsPlugin(app *App) {
+	app.InsertResource(Footsteps{})
+	app.AddSystems(Update, System(impactSoundSystem, footstepSystem).RunIf(InState(GameStatePlaying)))
 }
