@@ -74,3 +74,47 @@ func TestControlledCharacter(t *testing.T) {
 		t.Fatalf("masked ray should only hit the ground at distance 5, got %+v", hit)
 	}
 }
+
+func TestTeleportAndDisable(t *testing.T) {
+	app := newTestApp(t)
+	world := app.World()
+
+	start := byke2d.NewTransform().WithTranslationXYZ(0, 10, 0)
+	bodyId := world.Spawn([]byke.ErasedComponent{
+		start,
+		byke2d.GlobalTransform{Affine: start.Affine3()},
+		RigidBody{Type: Dynamic},
+		CuboidCollider(glm.Vec3f{0.5, 0.5, 0.5}),
+	})
+
+	query := world.Query[byke2d.Transform]()
+
+	step := func(n int) {
+		for range n {
+			world.RunSchedule(byke.FixedPreUpdate)
+			world.RunSchedule(byke.FixedUpdate)
+			world.RunSchedule(byke.FixedPostUpdate)
+		}
+	}
+
+	step(2)
+
+	world.RunSystem(func(commands *byke.Commands) {
+		commands.Entity(bodyId).Insert(Disabled{}, Teleport{Position: glm.Vec3f{5, 20, 0}})
+	})
+	step(30)
+
+	// disabled, so it does not fall
+	if pos, _ := query.Get(bodyId); !nearTol(pos.Translation, glm.Vec3f{5, 20, 0}, 1e-3) {
+		t.Fatalf("disabled body should stay at the teleport target, is at %v", pos.Translation)
+	}
+
+	world.RunSystem(func(commands *byke.Commands) {
+		commands.Entity(bodyId).Remove[Disabled]()
+	})
+	step(30)
+
+	if pos, _ := query.Get(bodyId); pos.Translation[1] > 19 || abs(pos.Translation[0]-5) > 1e-3 {
+		t.Fatalf("enabled body should fall from the teleport target, is at %v", pos.Translation)
+	}
+}

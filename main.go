@@ -69,7 +69,10 @@ func gamePlugin(app *App) {
 	app.InsertResource(SoundBudget{})
 	app.InsertResource(Stats{})
 	app.InsertResource(newArsenal())
-	app.InsertResource(AutoFire{Enabled: os.Getenv("ZOMBIES_AUTOFIRE") != ""})
+	app.InsertResource(TestInput{
+		Fire:  os.Getenv("ZOMBIES_AUTOFIRE") != "",
+		Drive: os.Getenv("ZOMBIES_DRIVE") != "",
+	})
 
 	app.AddSystems(Startup, startLoadingSystem, spawnLoadingScreenSystem)
 	app.AddSystems(Update, System(finishLoadingSystem).RunIf(InState(GameStateLoading)))
@@ -90,6 +93,7 @@ func gamePlugin(app *App) {
 	weaponsPlugin(app)
 	projectilesPlugin(app)
 	pickupsPlugin(app)
+	carPlugin(app)
 }
 
 // startRoundSystem replaces the world of the last round with a fresh one.
@@ -117,6 +121,7 @@ func startRoundSystem(commands *Commands, arsenal *Arsenal, waves *Waves, rounds
 	commands.RunSystem(spawnWorldSystem)
 	commands.RunSystem(spawnPlayerSystem)
 	commands.RunSystem(spawnHudSystem)
+	commands.RunSystem(spawnCarSystem)
 
 	if os.Getenv("ZOMBIES_DEMO") != "" {
 		commands.RunSystem(spawnDemoCrowdSystem)

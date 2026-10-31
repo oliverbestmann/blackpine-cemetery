@@ -235,7 +235,7 @@ func cameraFollowSystem(
 	}],
 ) {
 	player, ok := players.Single()
-	if !ok {
+	if !ok || player.Driving != NoEntityId {
 		return
 	}
 

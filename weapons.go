@@ -387,7 +387,7 @@ func fireSystem(
 	budget *SoundBudget,
 	assets *GameAssets,
 	models *Models,
-	autoFire *AutoFire,
+	testInput *TestInput,
 	damages *MessageWriter[ZombieDamage],
 	propHits *MessageWriter[PropHit],
 	players Query[Player],
@@ -398,7 +398,7 @@ func fireSystem(
 	flashes Query[*MuzzleFlash],
 ) {
 	player, ok := players.Single()
-	if !ok || player.Health <= 0 {
+	if !ok || player.Health <= 0 || player.Driving != NoEntityId {
 		return
 	}
 
@@ -407,7 +407,7 @@ func fireSystem(
 		return
 	}
 
-	held := (cursor.Grabbed && buttons.IsPressed(vyn.MouseButtonLeft)) || keys.IsPressed(vyn.KeyControlLeft) || autoFire.Enabled
+	held := (cursor.Grabbed && buttons.IsPressed(vyn.MouseButtonLeft)) || keys.IsPressed(vyn.KeyControlLeft) || testInput.Fire
 	shots := arsenal.Trigger(vt.DeltaSecs, held)
 	if shots == 0 {
 		return
@@ -542,7 +542,11 @@ func spawnTracer(commands *Commands, assets *GameAssets, from, to glm.Vec3f) {
 	)
 }
 
-// AutoFire holds the trigger, for screenshots and tests.
-type AutoFire struct {
-	Enabled bool
+// TestInput fakes player input, for screenshots.
+type TestInput struct {
+	// Fire holds the trigger.
+	Fire bool
+
+	// Drive gets into the car and drives in circles.
+	Drive bool
 }

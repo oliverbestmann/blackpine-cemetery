@@ -57,6 +57,9 @@ type CollisionLayers struct {
 // the body before every step, so game code can steer it, e.g. a character.
 type ControlledVelocity struct {
 	byke.ImmutableComponent[ControlledVelocity]
+
+	// Angular also writes the AngularVelocity component into the body.
+	Angular bool
 }
 
 func (RigidBody) RequireComponents() []byke.ErasedComponent {
@@ -225,7 +228,7 @@ func Plugin(app *byke.App) {
 	// also fires on despawn
 	app.World().RegisterComponentHooks[physicsBody]().OnRemove(destroyBodyHook)
 
-	app.AddSystems(byke.FixedPreUpdate, byke.System(createBodiesSystem, syncKinematicSystem, controlVelocitySystem).Chain())
+	app.AddSystems(byke.FixedPreUpdate, byke.System(createBodiesSystem, teleportSystem, disableSystem, syncKinematicSystem, controlVelocitySystem).Chain())
 	app.AddSystems(byke.FixedUpdate, stepSystem)
 	app.AddMessage[Hit]()
 	app.AddSystems(byke.FixedPostUpdate, byke.System(writeBackSystem).InSet(SystemsWriteBack), sensorOverlapsSystem, hitEventsSystem)
@@ -585,13 +588,18 @@ func syncKinematicSystem(fixed byke.FixedTime, bodies byke.Query[struct {
 }
 
 func controlVelocitySystem(bodies byke.Query[struct {
-	_              byke.With[ControlledVelocity]
-	Body           physicsBody
-	LinearVelocity LinearVelocity
+	Control         ControlledVelocity
+	Body            physicsBody
+	LinearVelocity  LinearVelocity
+	AngularVelocity AngularVelocity
 }],
 ) {
 	for item := range bodies.Items() {
 		item.Body.Body.SetLinearVelocity(toB3Vec(item.LinearVelocity.Vec3f))
+
+		if item.Control.Angular {
+			item.Body.Body.SetAngularVelocity(toB3Vec(item.AngularVelocity.Vec3f))
+		}
 	}
 }
 
