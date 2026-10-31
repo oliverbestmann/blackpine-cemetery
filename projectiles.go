@@ -31,7 +31,7 @@ type Rocket struct {
 }
 
 func projectilesPlugin(app *App) {
-	app.AddSystems(Update, System(grenadeSystem, rocketSystem).RunIf(InState(GameStatePlaying)))
+	app.AddSystems(Update, System(grenadeSystem, rocketSystem).RunIf(NotInState(GameStateLoading)))
 }
 
 func spawnGrenade(commands *Commands, models *Models, muzzle, dir glm.Vec3f) {

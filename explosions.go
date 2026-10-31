@@ -37,7 +37,7 @@ func explosionsPlugin(app *App) {
 	app.AddMessage[Explosion]()
 	app.AddMessage[PropHit]()
 
-	app.AddSystems(Update, System(explosiveSystem, explosionSystem).Chain().RunIf(InState(GameStatePlaying)))
+	app.AddSystems(Update, System(explosiveSystem, explosionSystem).Chain().RunIf(NotInState(GameStateLoading)))
 	app.AddSystems(Update, fadingLightSystem)
 }
 

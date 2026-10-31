@@ -260,9 +260,17 @@ func cameraFollowSystem(
 	shakeYaw := glm.Rad(shake * 0.04 * float32(math.Sin(t*41)))
 	shakePitch := glm.Rad(shake * 0.04 * float32(math.Sin(t*37+1)))
 
-	camera.Transform.Translation = position
-	camera.Transform.Rotation = glm.RotationYQuat(player.Yaw + shakeYaw).
+	rotation := glm.RotationYQuat(player.Yaw + shakeYaw).
 		Mul(glm.RotationXQuat(player.Pitch + glm.Rad(camera.Camera.Kick) + shakePitch))
+
+	// dead: lying on the ground, looking at the feet of the crowd
+	if player.Health <= 0 {
+		position[1] = 0.3
+		rotation = rotation.Mul(glm.RotationZQuat(glm.Rad(1.2)))
+	}
+
+	camera.Transform.Translation = position
+	camera.Transform.Rotation = rotation
 }
 
 // forward returns the direction the camera looks at.
