@@ -58,4 +58,4 @@ The screenshot writes one image per camera: `/tmp/z.png` is the HUD, `/tmp/z.2.p
 Test env vars: `ZOMBIES_DEMO` (crowd in front of the player), `ZOMBIES_AUTOFIRE` (hold the trigger),
 `ZOMBIES_WEAPON=n` (all weapons, select n), `ZOMBIES_DRIVE` (drive the car in circles).
 
-Asset credits are in [CREDITS.md](CREDITS.md).
+Asset credits are in [assets/CREDITS.md](assets/CREDITS.md).
