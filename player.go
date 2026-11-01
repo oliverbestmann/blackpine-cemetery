@@ -103,7 +103,7 @@ func spawnPlayerSystem(commands *Commands, assets *GameAssets, models *Models) {
 		Camera{},
 		Camera3d,
 		HDR{},
-		BloomNatural,
+		gameBloom,
 		gameColorGrading,
 		Skybox{Texture: assets.Skybox, Intensity: ColorLinearRGB(skyBrightness, skyBrightness, skyBrightness)},
 		EnvironmentMapLight{
@@ -138,6 +138,13 @@ func spawnPlayerSystem(commands *Commands, assets *GameAssets, models *Models) {
 }
 
 const viewModelLayer = 2
+
+// gameBloom is stronger than BloomNatural, so explosions and muzzle flashes glow.
+var gameBloom = func() Bloom {
+	b := BloomNatural
+	b.Intensity = 0.3
+	return b
+}()
 
 // gameColorGrading is a slightly washed out dusk look. Both 3d cameras use it,
 // so the weapon matches the world.
