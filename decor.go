@@ -46,10 +46,18 @@ func spawnGraveyardLights(commands *Commands, models *Models, assets *GameAssets
 	}
 
 	lantern := models.Get("graveyard/lantern-candle")
+	// at most 3-4 static point lights, every pixel loops over all of them.
+	// only the lantern at the big crypt lights the ground.
 	for _, x := range []float32{-18 + 3, 0 + 4, 18 + 3} {
 		pos := glm.Vec3f{x, 0, graveyardCenter[2] - graveyardHalfDepth + 2}
 		spawnProp(commands, lantern, TransformFromXYZ(pos.XYZ()).WithScaleXYZ(s, s, s), PropSettings{})
-		spawnFlame(commands, assets, pos.Add(glm.Vec3f{0, lantern.Max[1] * s * 0.45, 0}), 0.12, 15000, 9)
+
+		intensity := float32(0)
+		if x == 0+4 {
+			intensity = 15000
+		}
+
+		spawnFlame(commands, assets, pos.Add(glm.Vec3f{0, lantern.Max[1] * s * 0.45, 0}), 0.12, intensity, 9)
 	}
 
 	post := models.Get("graveyard/lightpost-double")
@@ -59,14 +67,9 @@ func spawnGraveyardLights(commands *Commands, models *Models, assets *GameAssets
 			ps := s * 1.6
 			spawnProp(commands, post, TransformFromXYZ(pos.XYZ()).WithScaleXYZ(ps, ps, ps), PropSettings{})
 
-			// a lamp on each arm, only one of them lights the ground
-			for idx, arm := range []float32{post.Min[2] * 0.8, post.Max[2] * 0.8} {
-				intensity := float32(0)
-				if idx == 0 {
-					intensity = 30000
-				}
-
-				spawnFlame(commands, assets, pos.Add(glm.Vec3f{0, post.Max[1]*ps - 0.45, arm * ps}), 0.14, intensity, 14)
+			// glowing lamps only, no point light
+			for _, arm := range []float32{post.Min[2] * 0.8, post.Max[2] * 0.8} {
+				spawnFlame(commands, assets, pos.Add(glm.Vec3f{0, post.Max[1]*ps - 0.45, arm * ps}), 0.14, 0, 0)
 			}
 		}
 	}
