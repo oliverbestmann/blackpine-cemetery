@@ -13,15 +13,19 @@ import (
 const (
 	playerRadius = 0.35
 
-	// distance between the two sphere centers of the capsule, the player is 1.8 m tall
-	playerCapsuleLength = 1.1
-	playerHalfHeight    = playerCapsuleLength/2 + playerRadius
+	// distance between the two sphere centers of the capsule. The capsule floats on the pogo
+	// of the mover, its bottom is 0.3 m above the ground, so the player walks up steps.
+	playerCapsuleLength = 0.5
+	playerPogoLength    = 0.65
+
+	// height of the capsule center above the ground
+	playerHalfHeight = playerPogoLength + playerCapsuleLength/2
 
 	// eye height above the capsule center
 	playerEyeOffset = 0.7
 
 	playerSpeed     = 9
-	playerJumpSpeed = 6
+	playerJumpSpeed = 7
 	playerMaxHealth = 100
 
 	mouseSensitivity = 0.0025
@@ -70,7 +74,10 @@ type PlayerCamera struct {
 var afterWriteBack = (&SystemSet{Name: "AfterWriteBack"}).After(physics.SystemsWriteBack)
 
 func playerPlugin(app *App) {
-	app.AddSystems(Update, System(lookSystem, moveSystem).Chain().RunIf(InState(GameStatePlaying)))
+	app.AddSystems(Update, System(lookSystem).RunIf(InState(GameStatePlaying)))
+
+	// also runs after death, to stop the player
+	app.AddSystems(Update, System(moveSystem).After(lookSystem))
 	app.AddSystems(FixedPostUpdate, System(trackPlayerSystem).InSet(afterWriteBack))
 	app.AddSystems(PostUpdate, System(cameraFollowSystem).InSet(beforeTransforms))
 }
@@ -82,8 +89,8 @@ func spawnPlayerSystem(commands *Commands, assets *GameAssets, models *Models) {
 		Round{},
 		Player{Health: playerMaxHealth, previous: playerStart, current: playerStart},
 		TransformFromXYZ(playerStart.XYZ()),
-		physics.RigidBody{Type: physics.Dynamic, LockRotation: true, Friction: 0.01, Density: 400},
-		physics.ControlledVelocity{},
+		physics.RigidBody{Type: physics.Dynamic, LockRotation: true, Density: 200},
+		physics.Mover{MoverSettings: playerMoverSettings()},
 		physics.CollisionLayers{Category: layerPlayer, Mask: layerWorld | layerProp | layerZombie | layerCar},
 		physics.CapsuleCollider(playerRadius, playerCapsuleLength),
 	)
@@ -183,38 +190,39 @@ func moveInput(keys Keys) glm.Vec3f {
 	return move
 }
 
-// walkVelocity turns the local walk direction into a world velocity for the given yaw.
-func walkVelocity(move glm.Vec3f, yaw glm.Rad) glm.Vec3f {
-	return glm.RotationYQuat(yaw).Transform(move).Scale(playerSpeed)
+// walkDirection turns the local walk direction into a world direction for the given yaw.
+func walkDirection(move glm.Vec3f, yaw glm.Rad) glm.Vec3f {
+	return glm.RotationYQuat(yaw).Transform(move)
+}
+
+func playerMoverSettings() physics.MoverSettings {
+	settings := physics.DefaultMoverSettings()
+	settings.MaxSpeed = playerSpeed
+	settings.JumpSpeed = playerJumpSpeed
+	settings.PogoRestLength = playerPogoLength
+	return settings
 }
 
 func moveSystem(
 	keys Keys,
-	world physics.PhysicsWorld,
 	players Query[struct {
-		Player         *Player
-		Transform      Transform
-		LinearVelocity *physics.LinearVelocity
+		Player *Player
+		Mover  *physics.Mover
 	}],
 ) {
 	for item := range players.Items() {
-		if item.Player.Driving != NoEntityId {
+		item.Player.Grounded = item.Mover.OnGround
+
+		if item.Player.Driving != NoEntityId || item.Player.Health <= 0 {
+			item.Mover.Direction = glm.Vec3f{}
 			continue
 		}
 
-		// stands on something if a ray from the capsule center reaches the ground just below the capsule
-		origin := item.Transform.Translation
-		_, grounded := world.CastRayMask(origin, glm.Vec3f{0, -1, 0}, playerHalfHeight+0.15, layerWorld|layerProp|layerCar|layerZombie)
-		item.Player.Grounded = grounded
+		item.Mover.Direction = walkDirection(moveInput(keys), item.Player.Yaw)
 
-		velocity := walkVelocity(moveInput(keys), item.Player.Yaw)
-		velocity[1] = item.LinearVelocity.Vec3f[1]
-
-		if grounded && keys.IsJustPressed(vyn.KeySpace) {
-			velocity[1] = playerJumpSpeed
+		if keys.IsJustPressed(vyn.KeySpace) {
+			item.Mover.Jump = true
 		}
-
-		item.LinearVelocity.Vec3f = velocity
 	}
 }
 

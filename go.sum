@@ -1,3 +1,11 @@
+github.com/oliverbestmann/box3d-go v0.1.0 h1:OYzeE7NId4Ssti3NvSq7P8ohUjkVW5NgrO3DZV7OLZU=
+github.com/oliverbestmann/box3d-go v0.1.0/go.mod h1:S/VzoGnmwyZFKD3x0SCqKbmjqpqJiLhFZTUjk4v9QUc=
+github.com/oliverbestmann/box3d-go v0.1.1-0.20261024061333-807d4aa65b11 h1:73d5aGACyId70h8h7ewyfIAX6rKnIrX7Btggu9EF+do=
+github.com/oliverbestmann/box3d-go v0.1.1-0.20261024061333-807d4aa65b11/go.mod h1:S/VzoGnmwyZFKD3x0SCqKbmjqpqJiLhFZTUjk4v9QUc=
+github.com/oliverbestmann/box3d-go v0.1.1-0.20261024103716-4967c0a096b2 h1:1xGsWpxc1hZy8u65BzicaXS+BGzMagNAl1CEDIkcFDw=
+github.com/oliverbestmann/box3d-go v0.1.1-0.20261024103716-4967c0a096b2/go.mod h1:S/VzoGnmwyZFKD3x0SCqKbmjqpqJiLhFZTUjk4v9QUc=
+github.com/oliverbestmann/box3d-go v0.2.0 h1:CmRdjcIKNeGbytI9q9CP62WmTGKg/cVLEtZ/yImdV0k=
+github.com/oliverbestmann/box3d-go v0.2.0/go.mod h1:S/VzoGnmwyZFKD3x0SCqKbmjqpqJiLhFZTUjk4v9QUc=
 github.com/oliverbestmann/byke v0.1.0 h1:GKcQd5DXw0k+d8irbiPCrGslJuC6andQgz6fR/xypl0=
 github.com/oliverbestmann/byke v0.1.0/go.mod h1:Bt3RD8kq3mF7QpZfO4JoLy2KwnBsxehHeOnGcmvlSEs=
 github.com/oliverbestmann/webgpu v1.37.0 h1:Oa5Hv+eRNDezixKVXcFj3WpHPU0WqkIXmmmJlfFbPdU=
@@ -12,9 +20,3 @@ github.com/oliverbestmann/webgpu/libs-linux v0.0.0-20260628152803-421b8a341d08 h
 github.com/oliverbestmann/webgpu/libs-linux v0.0.0-20260628152803-421b8a341d08/go.mod h1:SOeo2YWe2UxWxOeAHyZtwaSXkBbP78cGnm7I+6lIWV0=
 github.com/oliverbestmann/webgpu/libs-windows v0.0.0-20260628152801-f47d1b682eb8 h1:i+nU0u/5Fwwnqc6QXXk6Ivizue6YpdMGQbMwW2/frpY=
 github.com/oliverbestmann/webgpu/libs-windows v0.0.0-20260628152801-f47d1b682eb8/go.mod h1:58qRJHG2+mjEu/AKJFh026bz3xE1zEHYt41i4TBM8NE=
-github.com/oliverbestmann/box3d-go v0.1.0 h1:OYzeE7NId4Ssti3NvSq7P8ohUjkVW5NgrO3DZV7OLZU=
-github.com/oliverbestmann/box3d-go v0.1.0/go.mod h1:S/VzoGnmwyZFKD3x0SCqKbmjqpqJiLhFZTUjk4v9QUc=
-github.com/oliverbestmann/box3d-go v0.1.1-0.20261024061333-807d4aa65b11 h1:73d5aGACyId70h8h7ewyfIAX6rKnIrX7Btggu9EF+do=
-github.com/oliverbestmann/box3d-go v0.1.1-0.20261024061333-807d4aa65b11/go.mod h1:S/VzoGnmwyZFKD3x0SCqKbmjqpqJiLhFZTUjk4v9QUc=
-github.com/oliverbestmann/box3d-go v0.1.1-0.20261024103716-4967c0a096b2 h1:1xGsWpxc1hZy8u65BzicaXS+BGzMagNAl1CEDIkcFDw=
-github.com/oliverbestmann/box3d-go v0.1.1-0.20261024103716-4967c0a096b2/go.mod h1:S/VzoGnmwyZFKD3x0SCqKbmjqpqJiLhFZTUjk4v9QUc=

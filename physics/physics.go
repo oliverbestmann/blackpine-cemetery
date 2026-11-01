@@ -222,6 +222,9 @@ type ColliderConstructorHierarchy struct {
 // PhysicsWorld holds the box3d world. Use it for queries or to change settings like gravity.
 type PhysicsWorld struct {
 	World b3.World
+
+	// anchor is a static body without shapes, the base of the mover joints
+	anchor b3.Body
 }
 
 type physicsBody struct {
@@ -246,12 +249,12 @@ func Plugin(app *byke.App) {
 	def := b3.DefaultWorldDef()
 	def.Gravity = b3.Vec3{Y: -9.81}
 	world := b3.CreateWorld(def)
-	app.InsertResource(PhysicsWorld{World: world})
+	app.InsertResource(PhysicsWorld{World: world, anchor: world.CreateBody(b3.DefaultBodyDef())})
 
 	// also fires on despawn
 	app.World().RegisterComponentHooks[physicsBody]().OnRemove(destroyBodyHook)
 
-	app.AddSystems(byke.FixedPreUpdate, byke.System(createBodiesSystem, teleportSystem, disableSystem, syncKinematicSystem, controlVelocitySystem).Chain())
+	app.AddSystems(byke.FixedPreUpdate, byke.System(createBodiesSystem, teleportSystem, disableSystem, syncKinematicSystem, controlVelocitySystem, moverSystem).Chain())
 	app.AddSystems(byke.FixedUpdate, stepSystem)
 	app.AddMessage[Hit]()
 	app.AddSystems(byke.FixedPostUpdate, byke.System(writeBackSystem).InSet(SystemsWriteBack), sensorOverlapsSystem, hitEventsSystem)
@@ -345,6 +348,7 @@ func createBodiesSystem(
 		Collider        byke.Option[Collider]
 		Constructor     byke.Option[ColliderConstructorHierarchy]
 		Sensor          byke.Has[Sensor]
+		Mover           byke.Option[Mover]
 		Layers          byke.Option[CollisionLayers]
 	}],
 	nodes byke.Query[nodeItem],
@@ -383,6 +387,11 @@ func createBodiesSystem(
 		def.UserData = uint64(item.EntityId)
 		def.LinearDamping = item.RigidBody.LinearDamping
 		def.IsBullet = boolU8(item.RigidBody.Bullet)
+		mover, isMover := item.Mover.Get()
+		if isMover {
+			def.GravityScale = mover.GravityScale
+			def.EnableSleep = 0
+		}
 		if item.RigidBody.LockRotation {
 			def.MotionLocks = b3.MotionLocks{AngularX: 1, AngularY: 1, AngularZ: 1}
 		}
@@ -407,6 +416,12 @@ func createBodiesSystem(
 		}
 
 		shapeDef.BaseMaterial.Restitution = item.RigidBody.Restitution
+
+		// the mover joint and the pogo joint do all the movement, friction would fight them
+		if isMover {
+			shapeDef.BaseMaterial.Friction = 0
+			shapeDef.BaseMaterial.Restitution = 0
+		}
 
 		if layers, ok := item.Layers.Get(); ok {
 			shapeDef.Filter.CategoryBits = layers.Category

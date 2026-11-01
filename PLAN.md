@@ -31,10 +31,10 @@ Go module `github.com/oliverbestmann/zombies`, byke (ECS + renderer) and box3d-g
 | File | Content |
 |------|---------|
 | `main.go` | app setup, game states, screenshot hook |
-| `physics/` | box3d integration, copied from load20sgj and extended (motion locks, velocity control, collision filters) |
+| `physics/` | box3d integration, copied from load20sgj and extended (motion locks, velocity control, collision filters, dynamic mover) |
 | `assets.go` | loading, prefab extraction from glTF (shared meshes and materials, so instances batch) |
 | `world.go` | arena, sky, sun, props |
-| `player.go` | first person controller (dynamic capsule), health |
+| `player.go` | first person controller (dynamic capsule on `physics.Mover`), health |
 | `weapons.go` | weapon table, firing, ammo, view model |
 | `projectiles.go` | rockets and grenades |
 | `explosions.go` | damage, physics impulse, point light flash, fireball, camera shake |
@@ -97,8 +97,10 @@ Mouse wheel / Q cycles weapons. Zombies drop ammo, health and new weapons.
 
 - Own glTF loader (`model.go`) instead of SceneRoot, so meshes are shared and batched. Zombies
   are built from the 6 parts of the Kenney character models and animated procedurally.
-- Zombies and the player are dynamic capsules with locked rotation, their velocity is set each
-  frame (`physics.ControlledVelocity`). Physics resolves crowds and props.
+- Zombies and the player are dynamic capsules with locked rotation. The zombies' velocity is set
+  each frame (`physics.ControlledVelocity`). The player uses `physics.Mover`, a port of the
+  DynamicMover from the box3d samples: a mover joint drives the velocity and a pogo joint keeps
+  the capsule 0.3 m above the ground, so the player walks up steps. Physics resolves crowds and props.
 - Every entity with a mesh below another entity needs a `Visibility` on all its ancestors. byke
   stops propagating visibility at entities without one, the mesh stays invisible.
 - byke adds the emissive color after exposure, so emissive values are in output units (~1-10).
