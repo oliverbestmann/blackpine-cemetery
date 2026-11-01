@@ -34,6 +34,7 @@ var modelFiles = []string{
 	"graveyard/pine-fall-crooked",
 	"graveyard/iron-fence",
 	"graveyard/iron-fence-damaged",
+	"graveyard/pillar-square",
 	"graveyard/brick-wall",
 	"graveyard/hay-bale",
 	"graveyard/hay-bale-bundled",

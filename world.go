@@ -253,10 +253,15 @@ func spawnGraveyard(commands *Commands, models *Models, rng *rand.Rand) {
 	damaged := models.Get("graveyard/iron-fence-damaged")
 	fenceLength := fence.Size()[0] * s
 
+	// static pillars at the corners, the lines stop short of them. Lines that meet in a
+	// corner would overlap, and the physics would push the dynamic segments over.
+	pillar := models.Get("graveyard/pillar-square")
+	inset := pillar.Size()[0]*s/2 + 0.05
+
 	spawnFenceLine := func(from, to glm.Vec3f) {
-		dir := to.Sub(from)
-		length := dir.Length()
-		dir = dir.Normalize()
+		dir := to.Sub(from).Normalize()
+		from, to = from.Add(dir.Scale(inset)), to.Sub(dir.Scale(inset))
+		length := to.Sub(from).Length()
 		rotation := glm.QuatFromRotationArc(glm.Vec3f{1, 0, 0}, dir)
 
 		// stretch the segments a little, so the line ends exactly at the corners
@@ -289,6 +294,10 @@ func spawnGraveyard(commands *Commands, models *Models, rng *rand.Rand) {
 	spawnFenceLine(c.Add(glm.Vec3f{-w, 0, -d}), c.Add(glm.Vec3f{-w, 0, d}))
 	spawnFenceLine(c.Add(glm.Vec3f{w, 0, d}), c.Add(glm.Vec3f{w, 0, -d}))
 	spawnFenceLine(c.Add(glm.Vec3f{-w, 0, -d}), c.Add(glm.Vec3f{w, 0, -d}))
+
+	for _, corner := range []glm.Vec3f{{-w, 0, -d}, {w, 0, -d}, {-w, 0, d}, {w, 0, d}} {
+		spawnProp(commands, pillar, TransformFromXYZ(c.Add(corner).XYZ()).WithScaleXYZ(s, s, s), PropSettings{})
+	}
 }
 
 // keepClear reports if a position is in an area that should stay free of scenery:
