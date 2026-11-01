@@ -366,6 +366,29 @@ func spawnScenery(commands *Commands, models *Models, rng *rand.Rand) {
 			PropSettings{TriMesh: true}, Tree{Model: model})
 	}
 
+	// rows of trees behind the walls, out of reach, so they need no physics
+	for row := range 3 {
+		distance := arenaHalfSize + 5 + float32(row)*5.5
+
+		for side := range 4 {
+			rotation := glm.RotationYQuat(glm.Rad(float64(side) * math.Pi / 2))
+
+			for offset := -distance; offset < distance; offset += 6 + rng.Float32()*3 {
+				jitter := (rng.Float32()*2 - 1) * 2
+				pos := rotation.Transform(glm.Vec3f{offset, 0, -distance - jitter})
+				scale := 3.5 + rng.Float32()*2.5
+				model := models.Get(trees[rng.IntN(len(trees))])
+
+				commands.Spawn(
+					Round{},
+					TransformFromXYZ(pos.XYZ()).WithRotation(randomYaw(rng)).WithScaleXYZ(scale, scale, scale),
+					MeshInstance{Mesh: model.Merged},
+					model.Material,
+				)
+			}
+		}
+	}
+
 	// clusters of loose props
 	type propKind struct {
 		name    string
