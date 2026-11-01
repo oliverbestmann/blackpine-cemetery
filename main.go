@@ -47,7 +47,7 @@ func main() {
 
 	// after PluginRender, it inserts DefaultWindowConfig()
 	windowConfig := DefaultWindowConfig()
-	windowConfig.Title = "Dead by Hollow Pines"
+	windowConfig.Title = "Blackpine Cemetery"
 	app.InsertResource(windowConfig)
 	app.InsertResource(ShadowMapConfig{Size: 2048})
 	app.InsertResource(GlobalSpatialScale{Scale: glm.Vec3f{1, 1, 1}.Scale(spatialScale)})

@@ -1,7 +1,7 @@
-# Dead by Hollow Pines
+# Blackpine Cemetery
 
 A small over-the-top zombie shooter in the style of Serious Sam, built with
-[byke](../byke) and box3d physics. The dead climb out of the graveyard of Hollow Pines
+[byke](../byke) and box3d physics. The dead climb out of the Blackpine Cemetery
 in ever bigger waves. Run backwards, keep shooting, and grab the guns they drop.
 
 ## Run

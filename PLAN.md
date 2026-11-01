@@ -8,7 +8,7 @@ when something explodes.
 
 ## Setting and style
 
-**"Hollow Pines"**: a cemetery at the edge of a small town at a blood red dusk. The
+**"Blackpine Cemetery"**: a cemetery at the edge of a small town at a blood red dusk. The
 dead climb out of the graveyard in waves. The area is a big open field, with
 graves, crypts, fences, trees, hay bales, crates, barrels and abandoned cars as
 cover and as physics props.
