@@ -1,10 +1,12 @@
 package main
 
 import (
+	_ "embed"
 	"fmt"
 	"image"
 	"image/color"
 	"math"
+	"sync"
 
 	. "github.com/oliverbestmann/byke"
 	. "github.com/oliverbestmann/byke/byke2d"
@@ -16,6 +18,14 @@ const hudLayer = 1
 
 // the shorter screen side is this many hud units
 const hudUnits = 1000
+
+//go:embed assets/fonts/Creepster-Regular.ttf
+var hudFontData []byte
+
+// hudFont is a horror font for all texts of the game.
+var hudFont = sync.OnceValue(func() Font {
+	return Font{Faces: ParseFontFaces(hudFontData)}
+})
 
 // HudPin places a hud element relative to a screen corner or edge.
 type HudPin struct {
@@ -42,6 +52,7 @@ const (
 	hudScore
 	hudWave
 	hudMessage
+	hudEnemies
 )
 
 // DamageFlash is the red overlay when the player takes damage.
@@ -89,6 +100,7 @@ func spawnHudSystem(commands *Commands, assets *GameAssets) {
 			pin,
 			anchor,
 			Text{Size: size, Color: ColorSRGB(1, 0.95, 0.85)},
+			hudFont(),
 			HudText{Kind: kind},
 			RenderLayersOf(hudLayer),
 		)
@@ -99,6 +111,16 @@ func spawnHudSystem(commands *Commands, assets *GameAssets) {
 	text(hudScore, HudPin{Screen: glm.Vec2f{1, 1}, Offset: glm.Vec2f{-30, -30}}, AnchorTopRight, 36)
 	text(hudWave, HudPin{Screen: glm.Vec2f{-1, 1}, Offset: glm.Vec2f{30, -30}}, AnchorTopLeft, 36)
 	text(hudMessage, HudPin{Screen: glm.Vec2f{0, 0}, Offset: glm.Vec2f{0, 180}}, AnchorCenter, 48)
+
+	// enemies left in the wave, a skull and a number at the top
+	text(hudEnemies, HudPin{Screen: glm.Vec2f{0, 1}, Offset: glm.Vec2f{6, -55}}, AnchorCenterLeft, 44)
+	commands.Spawn(
+		Round{},
+		NewTransform(),
+		HudPin{Screen: glm.Vec2f{0, 1}, Offset: glm.Vec2f{-28, -55}},
+		Sprite{Texture: assets.SkullTexture, CustomSize: Some(glm.Vec2f{52, 52}), Color: ColorSRGB(1, 0.95, 0.85)},
+		RenderLayersOf(hudLayer),
+	)
 }
 
 // hudSize returns the visible hud area in hud units.
@@ -130,6 +152,8 @@ func hudTextSystem(
 	stats *Stats,
 	players Query[Player],
 	arsenal *Arsenal,
+	waves *Waves,
+	zombies Query[Zombie],
 	texts Query[struct {
 		HudText HudText
 		Text    *Text
@@ -159,12 +183,27 @@ func hudTextSystem(
 
 		case hudMessage:
 			value = stats.message(vt)
+
+		case hudEnemies:
+			value = fmt.Sprint(enemiesLeft(waves, zombies))
 		}
 
 		if item.Text.Text != value {
 			item.Text.Text = value
 		}
 	}
+}
+
+// enemiesLeft counts the living zombies and those of the wave still to come.
+func enemiesLeft(waves *Waves, zombies Query[Zombie]) int {
+	left := waves.pending
+	for z := range zombies.Items() {
+		if !z.Dead {
+			left++
+		}
+	}
+
+	return left
 }
 
 func damageFlashSystem(vt VirtualTime, players Query[*Player], flashes Query[struct {

@@ -150,7 +150,8 @@ func spawnLoadingScreenSystem(commands *Commands) {
 	commands.Spawn(
 		NewTransform(),
 		AnchorCenter,
-		Text{Text: "Digging up the dead...", Size: 40, Color: ColorSRGB(0.8, 0.1, 0.05)},
+		Text{Text: "Digging up the dead...", Size: 48, Color: ColorSRGB(0.8, 0.1, 0.05)},
+		hudFont(),
 		LoadingText{},
 		DespawnOnExitState(GameStateLoading),
 	)

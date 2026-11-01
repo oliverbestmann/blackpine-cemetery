@@ -109,6 +109,7 @@ type GameAssets struct {
 	Sounds           Sounds
 	WhiteTexture     *Texture
 	CrosshairTexture *Texture
+	SkullTexture     *Texture
 
 	// simple meshes for particles and effects
 	Cube, Sphere *Mesh
@@ -133,6 +134,7 @@ type loadingAssets struct {
 	textures map[string]AsyncAsset[*Texture]
 
 	ground, diffuse, specular AsyncAsset[*Texture]
+	skull                     AsyncAsset[*Texture]
 	sounds                    loadingSounds
 }
 
@@ -152,6 +154,7 @@ func startLoadingSystem(commands *Commands, assets *Assets) {
 		ground:   assets.TextureWithSettings("textures/ground.jpg", repeat),
 		diffuse:  assets.TextureWithSettings("sky/diffuse.ktx2", cube),
 		specular: assets.TextureWithSettings("sky/specular.ktx2", cube),
+		skull:    assets.Texture("textures/skull.png"),
 		sounds:   loadSounds(assets),
 	}
 
@@ -194,6 +197,7 @@ func (l *loadingAssets) progress() float32 {
 	count(isDone(l.ground))
 	count(isDone(l.diffuse))
 	count(isDone(l.specular))
+	count(isDone(l.skull))
 
 	for _, asset := range l.sounds.all() {
 		count(isDone(asset))
@@ -253,6 +257,7 @@ func finishLoadingSystem(ctx *RenderContext, commands *Commands, loading *loadin
 		Sounds:           loading.sounds.await(),
 		WhiteTexture:     whiteTexture(ctx),
 		CrosshairTexture: crosshairTexture(ctx),
+		SkullTexture:     loading.skull.Await(),
 		Cube:             Cube(),
 		Sphere:           Sphere(0.5, 8, 6),
 		BloodMaterial:    plain(ColorSRGB(0.35, 0.01, 0.01), 0.3),
