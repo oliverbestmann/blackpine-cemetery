@@ -4,15 +4,21 @@
 set -e
 cd "$(dirname "$0")"
 
-MESA=${MESA:-/dev/shm/mesa}
-if [ ! -e "$MESA" ]; then
-  nix build --out-link "$MESA" --inputs-from ../nix nixpkgs#mesa
-fi
-
 export GOEXPERIMENT=simd
-export WGPU_FORCE_FALLBACK_ADAPTER=1
-export VK_DRIVER_FILES=$MESA/share/vulkan/icd.d/lvp_icd.aarch64.json
-export LP_NUM_THREADS=0
+
+# the system GPU driver if the render node is usable, the lavapipe software driver otherwise
+if [ -r /dev/dri/renderD128 ] && [ -w /dev/dri/renderD128 ] && [ -z "$SOFTWARE" ]; then
+  :
+else
+  MESA=${MESA:-/dev/shm/mesa}
+  if [ ! -e "$MESA" ]; then
+    nix build --out-link "$MESA" --inputs-from ../nix nixpkgs#mesa
+  fi
+
+  export WGPU_FORCE_FALLBACK_ADAPTER=1
+  export VK_DRIVER_FILES=$MESA/share/vulkan/icd.d/lvp_icd.aarch64.json
+  export LP_NUM_THREADS=0
+fi
 export ZOMBIES_SCREENSHOT=${1:-/tmp/zombies.png}
 export ZOMBIES_SCREENSHOT_FRAME=${2:-60}
 
