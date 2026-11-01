@@ -39,39 +39,6 @@ func explosionsPlugin(app *App) {
 
 	app.AddSystems(Update, System(explosiveSystem, explosionSystem).Chain().RunIf(NotInState(GameStateLoading)))
 	app.AddSystems(Update, fadingLightSystem)
-	app.AddSystems(Update, System(breakTreeSystem).RunIf(NotInState(GameStateLoading)))
-}
-
-// breakTreeSystem breaks falling trees into pieces once they lean far enough.
-func breakTreeSystem(commands *Commands, rng *GameRng, trees Query[struct {
-	EntityId        EntityId
-	Tree            FallingTree
-	Transform       Transform
-	LinearVelocity  physics.LinearVelocity
-	AngularVelocity physics.AngularVelocity
-}],
-) {
-	for tree := range trees.Items() {
-		up := tree.Transform.Rotation.Transform(glm.Vec3f{0, 1, 0})
-		if up[1] > 0.6 {
-			continue
-		}
-
-		commands.Entity(tree.EntityId).Despawn()
-
-		affine := tree.Transform.Affine3()
-		for _, piece := range tree.Tree.Model.Pieces() {
-			// each piece keeps the speed its part had in the falling tree, plus a little scatter
-			center := affine.Transform3(piece.Min.Add(piece.Max).Scale(0.5))
-			velocity := tree.LinearVelocity.Add(tree.AngularVelocity.Cross(center.Sub(tree.Transform.Translation))).
-				Add(randomInSphere(rng.Rand).Scale(1.5))
-
-			spawnProp(commands, piece, tree.Transform, PropSettings{Dynamic: true, Density: 300},
-				physics.LinearVelocity{Vec3f: velocity},
-				physics.AngularVelocity{Vec3f: tree.AngularVelocity.Add(randomInSphere(rng.Rand))},
-			)
-		}
-	}
 }
 
 // explosiveDamage returns the damage at distance from an explosion.
@@ -198,7 +165,6 @@ func explosionSystem(
 			spawnProp(commands, tree.Tree.Model, tree.Transform, PropSettings{Dynamic: true, Density: 300, Slices: 4},
 				physics.LinearVelocity{Vec3f: away.Scale(3 * strength)},
 				physics.AngularVelocity{Vec3f: glm.Vec3f{0, 1, 0}.Cross(away).Scale(0.5 + 1.5*strength)},
-				FallingTree{Model: tree.Tree.Model},
 			)
 		}
 

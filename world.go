@@ -159,15 +159,9 @@ type Tree struct {
 	Model *Model
 }
 
-// FallingTree is a tree knocked over by an explosion. It breaks into pieces while it falls.
-type FallingTree struct {
-	Component[FallingTree]
-	Model *Model
-}
-
 // spawnProp spawns a model as a single entity with convex hull colliders around it.
 func spawnProp(commands *Commands, model *Model, transform Transform, settings PropSettings, extra ...ErasedComponent) EntityId {
-	collider := slicedHullCollider(model.merged, settings.Slices)
+	collider := slicedHullCollider(model.Merged, settings.Slices)
 	if settings.TriMesh && !settings.Dynamic {
 		collider = physics.TriMeshCollider(model.Merged.Vertices(), model.Merged.Indices())
 	}
