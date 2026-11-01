@@ -3,7 +3,6 @@ package main
 import (
 	"math"
 	"math/rand/v2"
-	"time"
 
 	. "github.com/oliverbestmann/byke"
 	. "github.com/oliverbestmann/byke/byke2d"
@@ -107,7 +106,19 @@ type ZombieDamage struct {
 
 	// Explosive damage tears the zombie apart more violently.
 	Explosive bool
+
+	Source DamageSource
 }
+
+// DamageSource is what hurt a zombie, for the score.
+type DamageSource int
+
+const (
+	SourceGun DamageSource = iota
+	SourceMelee
+	SourceCar
+	SourceExplosion
+)
 
 // GameRng is the random source of the game.
 type GameRng struct {
@@ -127,6 +138,7 @@ func zombiesPlugin(app *App) {
 type ZombieKilled struct {
 	Kind     ZombieKind
 	Position glm.Vec3f
+	Source   DamageSource
 }
 
 // spawnZombie spawns a zombie that climbs out of the ground at the given position.
@@ -432,10 +444,6 @@ func zombieDamageSystem(
 
 		commands.Entity(item.EntityId).Despawn()
 
-		if msg := stats.AddKill(vt.Elapsed); msg != "" {
-			stats.Show(vt, msg, 1500*time.Millisecond)
-		}
-
-		killed.Write(ZombieKilled{Kind: z.Kind, Position: item.Transform.Translation})
+		killed.Write(ZombieKilled{Kind: z.Kind, Position: item.Transform.Translation, Source: damage.Source})
 	}
 }

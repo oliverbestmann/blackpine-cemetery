@@ -137,6 +137,7 @@ func explosionSystem(
 				Push:      dir.Scale(5 + 10*amount/ex.Damage),
 				Point:     z.Transform.Translation,
 				Explosive: true,
+				Source:    SourceExplosion,
 			})
 		}
 

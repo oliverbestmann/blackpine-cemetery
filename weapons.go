@@ -638,6 +638,7 @@ func swingMelee(
 			Amount: def.Damage,
 			Push:   dir.Scale(def.Push).Add(glm.Vec3f{0, 2, 0}),
 			Point:  hit.Point,
+			Source: SourceMelee,
 		})
 
 		propHits.Write(PropHit{Entity: hit.Entity, Damage: def.Damage})

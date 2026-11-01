@@ -304,6 +304,7 @@ func runOverSystem(
 				Push:      velocity.Scale(0.9).Add(glm.Vec3f{0, 4 + speed*0.3, 0}),
 				Point:     z.Transform.Translation,
 				Explosive: speed > 15,
+				Source:    SourceCar,
 			})
 
 			playAt(commands, budget, assets.Sounds.Metal, z.Transform.Translation, 0.6)

@@ -98,6 +98,7 @@ func gamePlugin(app *App) {
 	projectilesPlugin(app)
 	pickupsPlugin(app)
 	carPlugin(app)
+	scorePlugin(app)
 	soundsPlugin(app)
 }
 
@@ -203,7 +204,7 @@ func deathSystem(vt VirtualTime, stats *Stats, state *NextState[GameState], play
 		return
 	}
 
-	stats.Show(vt, fmt.Sprintf("YOU GOT EATEN\n%d KILLS - PRESS R TO RISE AGAIN", stats.Kills), time.Hour)
+	stats.Show(vt, fmt.Sprintf("YOU GOT EATEN\n%d POINTS - %d KILLS - PRESS R TO RISE AGAIN", stats.Score, stats.Kills), time.Hour)
 	state.Set(GameStateDead)
 }
 

@@ -10,6 +10,17 @@ import (
 type Stats struct {
 	Kills int
 	Wave  int
+	Score int
+
+	achieved [len(achievements)]bool
+
+	// counters for achievements
+	meleeKills int
+	blastKills int
+	blastAt    time.Duration
+	seenWave   int
+	waveHurt   bool
+	lastHealth float32
 
 	// recent kills for multi kill messages
 	recentKills []time.Duration
@@ -48,8 +59,9 @@ var multiKillMessages = []struct {
 	{4, "MULTI KILL"},
 }
 
-// AddKill counts a kill and returns the multi kill message to show, if any.
-func (s *Stats) AddKill(now time.Duration) string {
+// AddKill counts a kill. It returns the number of kills in the current multi kill,
+// and the message to show, if any.
+func (s *Stats) AddKill(now time.Duration) (int, string) {
 	s.Kills++
 
 	// forget kills outside the window
@@ -65,9 +77,9 @@ func (s *Stats) AddKill(now time.Duration) string {
 	count := len(s.recentKills)
 	for _, m := range multiKillMessages {
 		if count == m.kills {
-			return m.text
+			return count, m.text
 		}
 	}
 
-	return ""
+	return count, ""
 }

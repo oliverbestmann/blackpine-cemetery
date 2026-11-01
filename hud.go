@@ -310,7 +310,7 @@ func hudTextSystem(
 			value = arsenal.hudText()
 
 		case hudScore:
-			value = fmt.Sprintf("KILLS %d", stats.Kills)
+			value = fmt.Sprintf("SCORE %d", stats.Score)
 
 		case hudWave:
 			value = fmt.Sprintf("WAVE %d", stats.Wave)

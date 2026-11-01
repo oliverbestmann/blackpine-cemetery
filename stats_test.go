@@ -10,7 +10,7 @@ func TestMultiKill(t *testing.T) {
 
 	var messages []string
 	for idx := range 7 {
-		if msg := stats.AddKill(time.Duration(idx) * 100 * time.Millisecond); msg != "" {
+		if _, msg := stats.AddKill(time.Duration(idx) * 100 * time.Millisecond); msg != "" {
 			messages = append(messages, msg)
 		}
 	}
@@ -20,8 +20,8 @@ func TestMultiKill(t *testing.T) {
 	}
 
 	// much later the count starts again
-	if msg := stats.AddKill(10 * time.Second); msg != "" || len(stats.recentKills) != 1 {
-		t.Fatalf("old kills should be forgotten, got %q and %d recent kills", msg, len(stats.recentKills))
+	if count, msg := stats.AddKill(10 * time.Second); msg != "" || count != 1 {
+		t.Fatalf("old kills should be forgotten, got %q and %d recent kills", msg, count)
 	}
 
 	if stats.Kills != 8 {
