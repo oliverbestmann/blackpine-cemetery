@@ -268,8 +268,8 @@ func finishLoadingSystem(ctx *RenderContext, commands *Commands, loading *loadin
 		DustMaterial:     plain(ColorSRGB(0.45, 0.38, 0.3), 1),
 		SmokeMaterial:    plain(ColorSRGB(0.45, 0.42, 0.4), 1),
 		RocketMaterial:   plain(ColorSRGB(0.3, 0.32, 0.3), 0.5),
-		TracerMaterial:   glowing(6, 3.5, 1),
-		FireMaterial:     glowing(4, 0.9, 0.08),
+		TracerMaterial:   glowing(15, 8.75, 2.5),
+		FireMaterial:     glowing(10, 2.25, 0.2),
 	})
 
 	state.Set(GameStatePlaying)
