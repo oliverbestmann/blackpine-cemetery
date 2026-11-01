@@ -104,7 +104,6 @@ func spawnPlayerSystem(commands *Commands, assets *GameAssets, models *Models) {
 		Camera3d,
 		HDR{},
 		gameBloom,
-		gameColorGrading,
 		Skybox{Texture: assets.Skybox, Intensity: ColorLinearRGB(skyBrightness, skyBrightness, skyBrightness)},
 		EnvironmentMapLight{
 			DiffuseMap:  assets.Diffuse,
@@ -123,7 +122,6 @@ func spawnPlayerSystem(commands *Commands, assets *GameAssets, models *Models) {
 		Camera{Order: 1},
 		Camera3d,
 		HDR{},
-		gameColorGrading,
 		ClearColor{Color: ColorSRGBA(0, 0, 0, 0)},
 		RenderLayersOf(viewModelLayer),
 		EnvironmentMapLight{
@@ -144,19 +142,6 @@ var gameBloom = func() Bloom {
 	b := BloomNatural
 	b.Intensity = 0.3
 	return b
-}()
-
-// gameColorGrading is a slightly washed out dusk look. Both 3d cameras use it,
-// so the weapon matches the world.
-// Temperature and Tint stay zero: byke uploads the white balance matrix with the wrong
-// padding (wgsl.StructWriter.appendValue), any other value turns the image red.
-var gameColorGrading = func() ColorGrading {
-	g := DefaultColorGrading
-	g.Global.PostSaturation = 0.85
-	g.Shadows.Saturation = 0.8
-	g.Shadows.Lift = 0.01
-	g.Highlights.Gain = 1.05
-	return g
 }()
 
 const (
