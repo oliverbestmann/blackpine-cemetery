@@ -19,6 +19,7 @@ var modelFiles = []string{
 	"graveyard/character-zombie",
 	"graveyard/character-skeleton",
 	"graveyard/character-vampire",
+	"graveyard/character-keeper",
 	"graveyard/character-ghost",
 	"graveyard/gravestone-bevel",
 	"graveyard/gravestone-broken",

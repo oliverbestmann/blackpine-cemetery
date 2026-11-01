@@ -113,6 +113,12 @@ func startRoundSystem(vt VirtualTime, commands *Commands, arsenal *Arsenal, wave
 	}
 
 	stats := Stats{Wave: 1}
+
+	// for testing: start at a later wave
+	if wave, err := strconv.Atoi(os.Getenv("ZOMBIES_WAVE")); err == nil && wave > 1 {
+		stats.Wave = wave
+	}
+
 	stats.Show(vt, "THE DEAD ARE RISING\nWASD + MOUSE - 1-7 WEAPONS - F CAR", 5*time.Second)
 	commands.InsertResource(stats)
 	*arsenal = newArsenal()
@@ -125,7 +131,7 @@ func startRoundSystem(vt VirtualTime, commands *Commands, arsenal *Arsenal, wave
 
 		arsenal.Select(WeaponKind(weapon))
 	}
-	startWaves(waves)
+	startWaves(waves, stats.Wave)
 	commands.RunSystem(spawnWorldSystem)
 	commands.RunSystem(spawnPlayerSystem)
 	commands.RunSystem(spawnHudSystem)

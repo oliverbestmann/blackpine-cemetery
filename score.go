@@ -15,6 +15,7 @@ var zombiePoints = map[ZombieKind]int{
 	ZombieRunner: 75,
 	ZombieBrute:  500,
 	ZombieGhost:  150,
+	ZombieKeeper: 5000,
 }
 
 // maxMultiplier caps the multi kill multiplier: the n-th kill of a multi kill counts n times.

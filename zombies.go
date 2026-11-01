@@ -24,6 +24,9 @@ const (
 
 	// ZombieGhost flies around and dives at the player.
 	ZombieGhost
+
+	// ZombieKeeper is the graveyard keeper, a boss every few waves. He raises the dead around him.
+	ZombieKeeper
 )
 
 // zombieKinds are the stats of each kind.
@@ -38,6 +41,7 @@ var zombieKinds = map[ZombieKind]struct {
 	ZombieRunner: {"graveyard/character-skeleton", 2.0, 20, 6.5, 5},
 	ZombieBrute:  {"graveyard/character-vampire", 3.0, 250, 2.6, 20},
 	ZombieGhost:  {"graveyard/character-ghost", 2.4, 30, 8, 10},
+	ZombieKeeper: {"graveyard/character-keeper", 5.5, 3000, 2.8, 35},
 }
 
 const (
@@ -54,6 +58,10 @@ const (
 	ghostDiveRange    = 14
 	ghostAttackRange  = 2
 	ghostClimbSecs    = 2.5
+
+	// the keeper raises this many walkers around him every keeperRaiseSecs
+	keeperRaiseSecs  = 7
+	keeperRaiseCount = 4
 )
 
 // Zombie is the body of a zombie, a capsule moved by physics.
@@ -79,6 +87,9 @@ type Zombie struct {
 
 	// Knockback is an extra velocity from hits, it decays quickly.
 	Knockback glm.Vec3f
+
+	// Raise counts down to the keeper raising the next dead.
+	Raise float32
 
 	// Dead is set once the zombie got killed, it despawns at the end of the frame.
 	Dead bool
@@ -207,6 +218,9 @@ func zombieVelocity(pos, target glm.Vec3f, speed float32) glm.Vec3f {
 
 func zombieSteerSystem(
 	vt VirtualTime,
+	commands *Commands,
+	models *Models,
+	rng *GameRng,
 	players Query[struct {
 		Player    *Player
 		Transform Transform
@@ -262,6 +276,20 @@ func zombieSteerSystem(
 			}
 
 			continue
+		}
+
+		if z.Kind == ZombieKeeper {
+			z.Raise -= dt
+			if z.Raise <= 0 && zombies.Count() < maxZombiesAlive {
+				z.Raise = keeperRaiseSecs
+
+				for i := range keeperRaiseCount {
+					angle := glm.Rad(float32(i)*2*math.Pi/keeperRaiseCount + rng.Float32())
+					at := pos.Add(glm.Vec3f{cos32(float32(angle)), 0, sin32(float32(angle))}.Scale(4 + 2*rng.Float32()))
+					at[1] = 0
+					spawnZombie(commands, models, ZombieWalker, at, yawTowards(target.Sub(at)), zombieRiseSecs)
+				}
+			}
 		}
 
 		velocity := zombieVelocity(pos, target, z.Speed)
@@ -436,7 +464,13 @@ func zombieDamageSystem(
 
 		z := item.Zombie
 		z.Health -= damage.Amount
-		z.Knockback = z.Knockback.Add(flat(damage.Push).Scale(0.3))
+		knockback := float32(0.3)
+		if z.Kind == ZombieKeeper {
+			// the boss barely moves
+			knockback = 0.03
+		}
+
+		z.Knockback = z.Knockback.Add(flat(damage.Push).Scale(knockback))
 
 		spawnBlood(commands, assets, rng, damage.Point, damage.Push.Scale(0.2), 3)
 

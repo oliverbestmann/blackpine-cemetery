@@ -53,6 +53,9 @@ func waveKind(wave int, roll float32) ZombieKind {
 	}
 }
 
+// every keeperWaves-th wave brings the keeper boss
+const keeperWaves = 5
+
 // maxZombiesAlive caps the crowd, for performance.
 const maxZombiesAlive = 160
 
@@ -61,8 +64,8 @@ func wavesPlugin(app *App) {
 	app.AddSystems(Update, System(waveSystem).RunIf(InState(GameStatePlaying)))
 }
 
-func startWaves(waves *Waves) {
-	*waves = Waves{pending: waveSize(1), pause: 5}
+func startWaves(waves *Waves, wave int) {
+	*waves = Waves{pending: waveSize(wave), pause: 5}
 }
 
 func waveSystem(
@@ -84,8 +87,20 @@ func waveSystem(
 
 	if waves.pause > 0 {
 		waves.pause -= dt
-		if waves.pause <= 0 {
+		if waves.pause > 0 {
+			return
+		}
+
+		if stats.Wave%keeperWaves != 0 {
 			stats.Show(vt, fmt.Sprintf("WAVE %d", stats.Wave), 2*time.Second)
+			return
+		}
+
+		// the keepers step out of the big crypt, one more every keeperWaves waves
+		stats.Show(vt, fmt.Sprintf("WAVE %d\nTHE KEEPER AWAKENS", stats.Wave), 3*time.Second)
+		for i := range stats.Wave / keeperWaves {
+			pos := glm.Vec3f{float32(i)*6 - float32(stats.Wave/keeperWaves-1)*3, 0, graveyardCenter[2] - graveyardHalfDepth + 9}
+			spawnZombie(commands, models, ZombieKeeper, pos, 0, zombieRiseSecs*2)
 		}
 
 		return

@@ -58,6 +58,7 @@ const (
 	hudWave
 	hudMessage
 	hudEnemies
+	hudBoss
 )
 
 // EnemyMarker is an arrow around the crosshair that points to one of the last zombies.
@@ -140,6 +141,8 @@ func spawnHudSystem(commands *Commands, assets *GameAssets) {
 	text(hudScore, HudPin{Screen: glm.Vec2f{1, 1}, Offset: glm.Vec2f{-30, -30}}, AnchorTopRight, 36)
 	text(hudWave, HudPin{Screen: glm.Vec2f{-1, 1}, Offset: glm.Vec2f{30, -30}}, AnchorTopLeft, 36)
 	text(hudMessage, HudPin{Screen: glm.Vec2f{0, 0}, Offset: glm.Vec2f{0, 180}}, AnchorCenter, 48)
+
+	text(hudBoss, HudPin{Screen: glm.Vec2f{0, 1}, Offset: glm.Vec2f{0, -110}}, AnchorCenter, 40)
 
 	// enemies left in the wave, a skull and a number at the top
 	text(hudEnemies, HudPin{Screen: glm.Vec2f{0, 1}, Offset: glm.Vec2f{6, -55}}, AnchorCenterLeft, 44)
@@ -290,6 +293,23 @@ func crosshairSystem(players Query[Player], crosshairs Query[struct {
 	}
 }
 
+// keeperHealthText shows the health left of all keepers, empty without a keeper.
+func keeperHealthText(zombies Query[Zombie]) string {
+	var health, total float32
+	for z := range zombies.Items() {
+		if z.Kind == ZombieKeeper && !z.Dead {
+			health += max(0, z.Health)
+			total += zombieKinds[ZombieKeeper].health
+		}
+	}
+
+	if total == 0 {
+		return ""
+	}
+
+	return fmt.Sprintf("THE KEEPER %d%%", int(math.Ceil(float64(health*100/total))))
+}
+
 func hudPinSystem(screen ScreenSize, pins Query[struct {
 	Pin       HudPin
 	Transform *Transform
@@ -347,6 +367,10 @@ func hudTextSystem(
 
 		case hudEnemies:
 			value = fmt.Sprint(enemiesLeft(waves, zombies))
+
+		case hudBoss:
+			value = keeperHealthText(zombies)
+			item.Text.Color = ColorSRGB(1, 0.25, 0.15)
 		}
 
 		if item.Text.Text != value {
