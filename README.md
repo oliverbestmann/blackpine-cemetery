@@ -1,4 +1,4 @@
-# Zombies of Hollow Pines
+# Dead by Hollow Pines
 
 A small over-the-top zombie shooter in the style of Serious Sam, built with
 [byke](../byke) and box3d physics. The dead climb out of the graveyard of Hollow Pines

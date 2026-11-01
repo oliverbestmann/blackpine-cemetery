@@ -13,7 +13,7 @@ import (
 
 const (
 	highscoreURL     = "https://highscore.narf.zone/games/%s/highscore"
-	highscoreGame    = "zombies-of-hollow-pines"
+	highscoreGame    = "dead-by-hollow-pines"
 	highscoreEntries = 8
 )
 
