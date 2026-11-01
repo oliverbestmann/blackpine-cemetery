@@ -25,8 +25,8 @@ func TestRollDropRate(t *testing.T) {
 		}
 	}
 
-	if drops < 1500 || drops > 2500 {
-		t.Fatalf("expected about 20%% drops, got %d of 10000", drops)
+	if drops < 3100 || drops > 4100 {
+		t.Fatalf("expected about 36%% drops, got %d of 10000", drops)
 	}
 }
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"math/rand/v2"
 	"time"
 
@@ -53,9 +54,9 @@ func rollDrop(rng *rand.Rand, kind ZombieKind, wave int) (Drop, bool) {
 	switch {
 	case roll < 0.04+0.01*float32(min(wave, 5)):
 		return Drop{Kind: PickupWeapon, Weapon: weapon}, true
-	case roll < 0.16:
+	case roll < 0.30:
 		return Drop{Kind: PickupAmmo}, true
-	case roll < 0.20:
+	case roll < 0.36:
 		return Drop{Kind: PickupHealth}, true
 	default:
 		return Drop{}, false
@@ -75,10 +76,10 @@ func (d Drop) apply(arsenal *Arsenal, player *Player) string {
 		return fmt.Sprintf("+%d %s AMMO", def.PickupAmmo, def.Name)
 
 	case PickupAmmo:
-		// some ammo for every weapon the player has
+		// ammo for every weapon the player has
 		for kind := range weaponCount {
 			if arsenal.Owned[kind] {
-				arsenal.AddAmmo(kind, max(1, weapons[kind].PickupAmmo/2))
+				arsenal.AddAmmo(kind, weapons[kind].PickupAmmo)
 			}
 		}
 
@@ -101,20 +102,32 @@ func (d Drop) model() (string, float32) {
 	}
 }
 
+// glow is the color of the marker above the pickup.
+func (d Drop) glow() StandardMaterial {
+	switch d.Kind {
+	case PickupWeapon:
+		return glowing(6, 2.5, 0.05)
+	case PickupAmmo:
+		return glowing(0.3, 5, 0.1)
+	default:
+		return glowing(6, 0.15, 0.1)
+	}
+}
+
 func pickupsPlugin(app *App) {
 	app.AddSystems(Update, System(dropSystem, pickupSystem).RunIf(InState(GameStatePlaying)))
 }
 
-func dropSystem(commands *Commands, models *Models, rng *GameRng, stats *Stats, killed *MessageReader[ZombieKilled]) {
+func dropSystem(commands *Commands, models *Models, assets *GameAssets, rng *GameRng, stats *Stats, killed *MessageReader[ZombieKilled]) {
 	for _, kill := range killed.Read() {
 		drop, ok := rollDrop(rng.Rand, kill.Kind, stats.Wave)
 		if ok {
-			spawnPickup(commands, models, drop, flat(kill.Position))
+			spawnPickup(commands, models, assets, drop, flat(kill.Position))
 		}
 	}
 }
 
-func spawnPickup(commands *Commands, models *Models, drop Drop, pos glm.Vec3f) {
+func spawnPickup(commands *Commands, models *Models, assets *GameAssets, drop Drop, pos glm.Vec3f) {
 	name, scale := drop.model()
 	model := models.Get(name)
 
@@ -133,6 +146,16 @@ func spawnPickup(commands *Commands, models *Models, drop Drop, pos glm.Vec3f) {
 		TransformFromXYZ(center.XYZ()).WithScaleXYZ(scale, scale, scale),
 		MeshInstance{Mesh: model.Merged},
 		model.Material,
+	)
+
+	// a glowing diamond above it, a cube standing on a corner, to spot the pickup from afar
+	corner := glm.RotationXQuat(glm.Rad(math.Atan(1 / math.Sqrt2))).Mul(glm.RotationZQuat(glm.Rad(math.Pi / 4)))
+	commands.Spawn(
+		ChildOf{Parent: pickup},
+		TransformFromXYZ(0, 1.5, 0).WithRotation(corner).WithScaleXYZ(0.4, 0.4, 0.4),
+		MeshInstance{Mesh: assets.Cube},
+		drop.glow(),
+		NotShadowCaster{},
 	)
 }
 
