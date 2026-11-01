@@ -65,6 +65,7 @@ its parts become dynamic bodies and fly away (gibs).
 | 4 | Shotgun | hitscan, many pellets |
 | 5 | Grenade launcher | bouncing grenades with fuse (physics bodies) |
 | 6 | Rocket launcher | rockets, explode on contact |
+| 7 | Shovel | melee, rays in a short cone, no ammo |
 
 Mouse wheel / Q cycles weapons. Zombies drop ammo, health and new weapons.
 

@@ -18,9 +18,9 @@ nix develop ../nix -c sh -c 'GOEXPERIMENT=simd go run .'
 | Left mouse / Ctrl    | fire                                |
 | W A S D              | move                                |
 | Space                | jump                                |
-| 1 - 6                | select weapon                       |
+| 1 - 7                | select weapon                       |
 | Q / E, Tab           | previous / next weapon              |
-| F                    | enter or leave the police car       |
+| F                    | enter or leave the nearest car      |
 | W A S D (in the car) | drive, run the dead over            |
 | R                    | rise again after you got eaten      |
 | Esc                  | quit                                |
@@ -33,6 +33,7 @@ nix develop ../nix -c sh -c 'GOEXPERIMENT=simd go run .'
 4. Gatling gun - spins up, then shreds everything
 5. Grenade launcher - bouncing grenades, explode on contact with the dead
 6. Rocket launcher - big explosions
+7. Shovel - needs no ammo, taken when the guns are empty
 
 Killed zombies sometimes drop weapons, ammo clips or carved pumpkins (health).
 Brutes (the big vampires) always drop a weapon. Shoot the barrels, they explode
@@ -56,6 +57,7 @@ ZOMBIES_DEMO=1 ZOMBIES_AUTOFIRE=1 ZOMBIES_WEAPON=5 nix develop ../nix -c ./scree
 
 The screenshot writes one image per camera: `/tmp/z.png` is the HUD, `/tmp/z.2.png` the 3D view.
 Test env vars: `ZOMBIES_DEMO` (crowd in front of the player), `ZOMBIES_AUTOFIRE` (hold the trigger),
-`ZOMBIES_WEAPON=n` (all weapons, select n), `ZOMBIES_DRIVE` (drive the car in circles).
+`ZOMBIES_WEAPON=n` (all weapons, select n), `ZOMBIES_DRIVE` (drive the car in circles),
+`ZOMBIES_DEBUG` (debug logs and the physics colliders drawn as transparent meshes).
 
 Asset credits are in [assets/CREDITS.md](assets/CREDITS.md).
