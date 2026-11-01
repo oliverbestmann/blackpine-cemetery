@@ -65,8 +65,10 @@ func spawnWorldSystem(commands *Commands, models *Models, assets *GameAssets) {
 	spawnGround(commands, assets)
 	spawnSun(commands)
 	spawnArenaWalls(commands, models)
-	spawnGraveyard(commands, models, rng)
+	spawnGraveyard(commands, models, assets, rng)
+	spawnGraveyardLights(commands, models, assets)
 	spawnScenery(commands, models, rng)
+	spawnVegetation(commands, models, rng)
 }
 
 func spawnGround(commands *Commands, assets *GameAssets) {
@@ -234,7 +236,7 @@ const (
 	graveyardHalfDepth = 20
 )
 
-func spawnGraveyard(commands *Commands, models *Models, rng *rand.Rand) {
+func spawnGraveyard(commands *Commands, models *Models, assets *GameAssets, rng *rand.Rand) {
 	stones := []string{
 		"graveyard/gravestone-bevel",
 		"graveyard/gravestone-broken",
@@ -242,7 +244,18 @@ func spawnGraveyard(commands *Commands, models *Models, rng *rand.Rand) {
 		"graveyard/gravestone-round",
 		"graveyard/gravestone-wide",
 		"graveyard/gravestone-decorative",
+		"graveyard/gravestone-cross-large",
+		"graveyard/gravestone-roof",
+		"graveyard/cross",
+		"graveyard/cross-wood",
+		"graveyard/cross-column",
+		"graveyard/pillar-obelisk",
 	}
+
+	plots := []string{"graveyard/grave", "graveyard/grave-border"}
+	candles := []string{"graveyard/candle", "graveyard/candle-multiple"}
+	urns := []string{"graveyard/urn-round", "graveyard/urn-square"}
+	tombs := []string{"graveyard/crypt-a", "graveyard/crypt-b"}
 
 	s := float32(scaleGraveyard)
 
@@ -253,8 +266,32 @@ func spawnGraveyard(commands *Commands, models *Models, rng *rand.Rand) {
 				continue
 			}
 
-			model := models.Get(stones[rng.IntN(len(stones))])
 			pos := graveyardCenter.Add(glm.Vec3f{col + rng.Float32()*0.6 - 0.3, 0, row + rng.Float32()*0.6 - 0.3})
+
+			// now and then a heavy stone tomb instead of a grave
+			if rng.Float32() < 0.08 {
+				spawnProp(commands, models.Get(tombs[rng.IntN(len(tombs))]), TransformFromXYZ(pos.Add(glm.Vec3f{0, 0, 1}).XYZ()).WithScaleXYZ(s, s, s), PropSettings{Dynamic: true, Density: 1500})
+				continue
+			}
+
+			// the plot in front of the stone, flat, the dead climb through it
+			if rng.Float32() < 0.6 {
+				plot := TransformFromXYZ(pos.Add(glm.Vec3f{0, 0.01, 1.6}).XYZ()).WithScaleXYZ(s, s, s)
+				spawnDecor(commands, models.Get(plots[rng.IntN(len(plots))]), plot)
+			}
+
+			if rng.Float32() < 0.2 {
+				candle := models.Get(candles[rng.IntN(len(candles))])
+				at := pos.Add(glm.Vec3f{0.5, 0, 0.5})
+				spawnDecor(commands, candle, TransformFromXYZ(at.XYZ()).WithRotation(randomYaw(rng)).WithScaleXYZ(s, s, s))
+				spawnFlame(commands, assets, at.Add(glm.Vec3f{0, candle.Max[1]*s + 0.05, 0}), 0.06, 0, 0)
+			}
+
+			if rng.Float32() < 0.1 {
+				spawnProp(commands, models.Get(urns[rng.IntN(len(urns))]), TransformFromXYZ(pos.Add(glm.Vec3f{-0.6, 0, 0.4}).XYZ()).WithScaleXYZ(s, s, s), PropSettings{Dynamic: true, Density: 600})
+			}
+
+			model := models.Get(stones[rng.IntN(len(stones))])
 			tilt := glm.RotationYQuat(glm.Rad(rng.Float32()*0.4 - 0.2)).Mul(glm.RotationXQuat(glm.Rad(rng.Float32()*0.2 - 0.1)))
 
 			// light and loose, explosions toss them around
@@ -262,11 +299,27 @@ func spawnGraveyard(commands *Commands, models *Models, rng *rand.Rand) {
 		}
 	}
 
-	// crypts at the back
-	for _, x := range []float32{-18, 0, 18} {
+	// crypts at the back, a large one with an altar in the middle
+	for _, x := range []float32{-18, 18} {
 		model := models.Get("graveyard/crypt-small")
 		pos := graveyardCenter.Add(glm.Vec3f{x, 0, -graveyardHalfDepth - 3})
 		spawnProp(commands, model, TransformFromXYZ(pos.XYZ()).WithScaleXYZ(3, 3, 3), PropSettings{})
+	}
+
+	large := models.Get("graveyard/crypt-large")
+	largePos := graveyardCenter.Add(glm.Vec3f{0, 0, -graveyardHalfDepth - 4})
+	spawnProp(commands, large, TransformFromXYZ(largePos.XYZ()).WithScaleXYZ(3, 3, 3), PropSettings{})
+	roofPos := largePos.Add(glm.Vec3f{0, large.Max[1] * 3, 0})
+	spawnProp(commands, models.Get("graveyard/crypt-large-roof"), TransformFromXYZ(roofPos.XYZ()).WithScaleXYZ(3, 3, 3), PropSettings{})
+
+	altar := graveyardCenter.Add(glm.Vec3f{0, 0, -graveyardHalfDepth + 2.5})
+	spawnProp(commands, models.Get("graveyard/altar-stone"), TransformFromXYZ(altar.XYZ()).WithScaleXYZ(s, s, s), PropSettings{})
+
+	// benches outside the gate
+	bench := models.Get("graveyard/bench")
+	for _, x := range []float32{-10, 10} {
+		pos := glm.Vec3f{x, 0, graveyardCenter[2] + graveyardHalfDepth + 4}
+		spawnProp(commands, bench, TransformFromXYZ(pos.XYZ()).WithRotation(glm.RotationYQuat(glm.Rad(math.Pi))).WithScaleXYZ(s, s, s), PropSettings{Dynamic: true, Density: 500})
 	}
 
 	// iron fence around the graveyard, with gaps for the dead to walk through
@@ -379,12 +432,7 @@ func spawnScenery(commands *Commands, models *Models, rng *rand.Rand) {
 				scale := 3.5 + rng.Float32()*2.5
 				model := models.Get(trees[rng.IntN(len(trees))])
 
-				commands.Spawn(
-					Round{},
-					TransformFromXYZ(pos.XYZ()).WithRotation(randomYaw(rng)).WithScaleXYZ(scale, scale, scale),
-					MeshInstance{Mesh: model.Merged},
-					model.Material,
-				)
+				spawnDecor(commands, model, TransformFromXYZ(pos.XYZ()).WithRotation(randomYaw(rng)).WithScaleXYZ(scale, scale, scale))
 			}
 		}
 	}
@@ -408,6 +456,9 @@ func spawnScenery(commands *Commands, models *Models, rng *rand.Rand) {
 		{"graveyard/pumpkin", scaleGraveyard, 200, 30},
 		{"graveyard/pumpkin-carved", scaleGraveyard, 200, 15},
 		{"graveyard/coffin", scaleGraveyard * 1.2, 250, 12},
+		{"graveyard/coffin-old", scaleGraveyard * 1.2, 250, 8},
+		{"graveyard/pumpkin-tall-carved", scaleGraveyard, 200, 12},
+		{"graveyard/trunk", scaleGraveyard * 1.2, 300, 8},
 		{"survival/tree-log", scaleSurvival * 1.5, 400, 15},
 	}
 
@@ -429,7 +480,7 @@ func spawnScenery(commands *Commands, models *Models, rng *rand.Rand) {
 	}
 
 	// rocks, static
-	rocks := []string{"survival/rock-a", "survival/rock-b", "survival/rock-c", "graveyard/rocks"}
+	rocks := []string{"survival/rock-a", "survival/rock-b", "survival/rock-c", "graveyard/rocks", "graveyard/rocks-tall"}
 	for range 25 {
 		pos := randomArenaPosition(rng, 4)
 		s := 3 + rng.Float32()*3
