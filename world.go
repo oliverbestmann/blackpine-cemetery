@@ -259,9 +259,15 @@ func spawnGraveyard(commands *Commands, models *Models, rng *rand.Rand) {
 		dir = dir.Normalize()
 		rotation := glm.QuatFromRotationArc(glm.Vec3f{1, 0, 0}, dir)
 
-		for d := fenceLength / 2; d < length; d += fenceLength {
-			// every few segments a gap
-			if rng.Float32() < 0.2 {
+		// stretch the segments a little, so the line ends exactly at the corners
+		count := int(math.Ceil(float64(length / fenceLength)))
+		step := length / float32(count)
+		stretch := s * step / fenceLength
+		depthOffset := (fence.Min[2] + fence.Max[2]) / 2 * s
+
+		for idx := range count {
+			// every few segments a gap, but the corners stay closed
+			if idx > 0 && idx < count-1 && rng.Float32() < 0.2 {
 				continue
 			}
 
@@ -270,8 +276,9 @@ func spawnGraveyard(commands *Commands, models *Models, rng *rand.Rand) {
 				model = damaged
 			}
 
-			pos := from.Add(dir.Scale(d))
-			spawnProp(commands, model, TransformFromXYZ(pos.XYZ()).WithRotation(rotation).WithScaleXYZ(s, s, s), PropSettings{Dynamic: true, Density: 300})
+			// the model is off center in depth, put it on the line so the corners meet
+			pos := from.Add(dir.Scale((float32(idx) + 0.5) * step)).Sub(rotation.Transform(glm.Vec3f{0, 0, depthOffset}))
+			spawnProp(commands, model, TransformFromXYZ(pos.XYZ()).WithRotation(rotation).WithScaleXYZ(stretch, s, s), PropSettings{Dynamic: true, Density: 300})
 		}
 	}
 
@@ -281,6 +288,7 @@ func spawnGraveyard(commands *Commands, models *Models, rng *rand.Rand) {
 	spawnFenceLine(c.Add(glm.Vec3f{4, 0, d}), c.Add(glm.Vec3f{w, 0, d}))
 	spawnFenceLine(c.Add(glm.Vec3f{-w, 0, -d}), c.Add(glm.Vec3f{-w, 0, d}))
 	spawnFenceLine(c.Add(glm.Vec3f{w, 0, d}), c.Add(glm.Vec3f{w, 0, -d}))
+	spawnFenceLine(c.Add(glm.Vec3f{-w, 0, -d}), c.Add(glm.Vec3f{w, 0, -d}))
 }
 
 // keepClear reports if a position is in an area that should stay free of scenery:
