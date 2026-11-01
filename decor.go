@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math"
 	"math/rand/v2"
 
 	. "github.com/oliverbestmann/byke"
@@ -111,5 +112,48 @@ func spawnVegetation(commands *Commands, models *Models, rng *rand.Rand) {
 	for range 15 {
 		s := scaleSurvival * (0.6 + rng.Float32()*0.4)
 		spawnDecor(commands, rock, TransformFromXYZ(randomArenaPosition(rng, 4).XYZ()).WithRotation(randomYaw(rng)).WithScaleXYZ(s, s*0.6, s))
+	}
+}
+
+// spawnRoad lays a road from the graveyard gate to the south edge of the arena, with cones
+// along the sides and two crashed cars on it.
+func spawnRoad(commands *Commands, models *Models, rng *rand.Rand) {
+	const (
+		tile = 4.0
+		// the model tile is 0.8 m wide
+		size = tile * 0.8
+	)
+
+	road := models.Get("graveyard/road")
+	front := graveyardCenter[2] + graveyardHalfDepth
+
+	// flat, so nobody trips over the edge. render only, the ground below does the physics
+	for z := float32(front + size/2); z < arenaHalfSize; z += size {
+		for _, x := range []float32{-size / 2, size / 2} {
+			spawnDecor(commands, road, TransformFromXYZ(x, 0.01, z).WithScaleXYZ(tile, 0.5, tile), NotShadowCaster{})
+		}
+	}
+
+	cones := []*Model{models.Get("car/cone"), models.Get("car/cone-flat")}
+	cone := func(x, z float32) {
+		s := float32(scaleCar)
+		spawnProp(commands, cones[rng.IntN(len(cones))], TransformFromXYZ(x, 0, z).WithRotation(randomYaw(rng)).WithScaleXYZ(s, s, s), PropSettings{Dynamic: true, Density: 200})
+	}
+
+	// rows of cones on both sides
+	for z := float32(front + 4); z < arenaHalfSize-2; z += 6 + rng.Float32()*6 {
+		cone(-size-0.6, z)
+		cone(size+0.6, z)
+	}
+
+	// a crash scene: two cars and a ring of cones
+	crash := glm.Vec3f{0, 0, 45}
+	s := float32(scaleCar)
+	spawnCar(commands, models, "car/sedan", TransformFromXYZ(crash[0]-1.8, 0, crash[2]).WithRotation(glm.RotationYQuat(glm.DegToRad(70))).WithScaleXYZ(s, s, s))
+	spawnCar(commands, models, "car/taxi", TransformFromXYZ(crash[0]+2.2, 0, crash[2]+3).WithRotation(glm.RotationYQuat(glm.DegToRad(-160))).WithScaleXYZ(s, s, s))
+
+	for i := range 10 {
+		angle := float32(i) * 2 * math.Pi / 10
+		cone(crash[0]+cos32(angle)*7, crash[2]+1.5+sin32(angle)*7)
 	}
 }
