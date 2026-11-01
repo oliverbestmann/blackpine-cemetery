@@ -8,6 +8,25 @@ import (
 	"github.com/oliverbestmann/byke/byke2d/glm"
 )
 
+func TestOverlayColor(t *testing.T) {
+	cases := []struct {
+		damaged, health float32
+		want            glm.Vec4f
+	}{
+		{0, playerMaxHealth, glm.Vec4f{0, 0, 0, 1}},
+		{0.4, 80, glm.Vec4f{1, 0, 0, 1}},   // just hit
+		{0.2, 80, glm.Vec4f{0.5, 0, 0, 1}}, // flash fades
+		{0, 15, glm.Vec4f{0, 0.5, 0, 1}},   // low health
+		{0, 0, glm.Vec4f{1, 1, 0, 1}},      // dead
+	}
+
+	for _, c := range cases {
+		if got := overlayColor(c.damaged, c.health).ToVec(); got.Sub(c.want).Length() > 1e-5 {
+			t.Errorf("overlayColor(%v, %v) = %v, want %v", c.damaged, c.health, got, c.want)
+		}
+	}
+}
+
 func TestMarkerPlacement(t *testing.T) {
 	half := glm.Vec2f{889, 500}
 	projection := PerspectiveProjection{Fov: glm.DegToRad(80), Near: 0.05, Far: 1000}.ToMat4f(half)

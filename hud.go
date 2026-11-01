@@ -68,7 +68,15 @@ const (
 	enemyMarkerDistance = 4
 )
 
-// DamageFlash is the red overlay when the player takes damage.
+//go:embed assets/shaders/overlay.wgsl
+var overlayShaderCode string
+
+var overlayShader = &ShaderDef{Label: "overlay", Source: overlayShaderCode, FragmentEntry: "overlay"}
+
+// health below this is low: red text and a pulsing red vignette
+const lowHealth = 30
+
+// DamageFlash is the full screen overlay: vignette, grain and the red flash when the player takes damage.
 type DamageFlash struct {
 	ImmutableComponent[DamageFlash]
 }
@@ -97,11 +105,12 @@ func spawnHudSystem(commands *Commands, assets *GameAssets) {
 		RenderLayersOf(hudLayer),
 	)
 
-	// full screen red flash, invisible until the player is hit
+	// full screen overlay below the hud texts, the shader does not read the texture
 	commands.Spawn(
 		Round{},
-		TransformFromXYZ(0, 0, 0.1),
-		Sprite{Texture: assets.WhiteTexture, CustomSize: Some(glm.Vec2f{4000, 4000}), Color: ColorSRGBA(0.8, 0, 0, 0)},
+		TransformFromXYZ(0, 0, -0.1),
+		Sprite{Texture: assets.WhiteTexture, CustomSize: Some(glm.Vec2f{4000, 4000}), Color: overlayColor(0, playerMaxHealth)},
+		CustomShader{Shader: overlayShader},
 		RenderLayersOf(hudLayer),
 		DamageFlash{},
 	)
@@ -293,7 +302,7 @@ func hudTextSystem(
 		case hudHealth:
 			value = fmt.Sprintf("+ %d", int(math.Ceil(float64(max(0, player.Health)))))
 			item.Text.Color = ColorSRGB(1, 0.95, 0.85)
-			if player.Health < 30 {
+			if player.Health < lowHealth {
 				item.Text.Color = ColorSRGB(1, 0.2, 0.1)
 			}
 
@@ -343,14 +352,21 @@ func damageFlashSystem(vt VirtualTime, players Query[*Player], flashes Query[str
 
 	player.Damaged = max(0, player.Damaged-vt.DeltaSecs)
 
-	alpha := min(0.5, player.Damaged)
-	if player.Health <= 0 {
-		alpha = 0.5
+	for flash := range flashes.Items() {
+		flash.Sprite.Color = overlayColor(player.Damaged, player.Health)
+	}
+}
+
+// overlayColor packs the overlay shader parameters into the sprite color:
+// r is the damage flash, g how low the health is, both in [0, 1].
+func overlayColor(damaged, health float32) Color {
+	damage := min(1, damaged*2.5)
+	low := min(1, max(0, (lowHealth-health)/lowHealth))
+	if health <= 0 {
+		damage, low = 1, 1
 	}
 
-	for flash := range flashes.Items() {
-		flash.Sprite.Color = ColorSRGBA(0.7, 0, 0, alpha)
-	}
+	return ColorLinearRGBA(damage, low, 0, 1)
 }
 
 func whiteTexture(ctx *RenderContext) *Texture {
