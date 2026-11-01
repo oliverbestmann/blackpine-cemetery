@@ -40,7 +40,11 @@ var (
 	sunDirection = glm.Vec3f{0.218, 0.963, -0.159}.Normalize()
 
 	// the shadow map covers this box around the player
-	sunShadowVolume = glm.Vec3f{60, 60, 300}
+	sunShadowVolumes = [3]glm.Vec3f{
+		{60, 60, 300},
+		{240, 240, 300},
+		{480, 480, 300},
+	}
 )
 
 // Sun is the directional light, its shadow volume follows the player.
@@ -94,7 +98,7 @@ func spawnSun(commands *Commands) {
 	light.Color = ColorSRGB(1, 0.75, 0.55)
 	light.Illuminance = 2500
 	light.ShadowsEnabled = true
-	light.ShadowVolume = sunShadowVolume
+	light.ShadowVolumes = sunShadowVolumes[:]
 	light.EnvironmentShadow = 0.6
 
 	commands.Spawn(
@@ -133,8 +137,10 @@ func followSunSystem(
 	}
 
 	for sun := range suns.Items() {
+		sunShadowVolumeHeight := sunShadowVolumes[0][2]
+
 		// the volume starts at the light's position and reaches along the light's direction
-		sun.Transform.Translation = center.Add(sunDirection.Scale(sunShadowVolume[2] / 2))
+		sun.Transform.Translation = center.Add(sunDirection.Scale(sunShadowVolumeHeight / 2))
 	}
 }
 
@@ -202,6 +208,21 @@ func spawnArenaWalls(commands *Commands, models *Models) {
 			transform := TransformFromXYZ(position.XYZ()).WithRotation(rotation).WithScaleXYZ(wallScale, wallScale, wallScale)
 			spawnProp(commands, wall, transform, PropSettings{})
 		}
+	}
+
+	// the wall model sits behind its origin, so the walls miss the corners. A pillar on the
+	// crossing of the wall center lines closes them.
+	pillar := models.Get("graveyard/pillar-square")
+	centerOffset := -(wall.Min[2] + wall.Max[2]) / 2 * wallScale
+	corner := arenaHalfSize + centerOffset
+
+	// twice the center offset wide, so it reaches the end of the walls, and a bit taller than the walls
+	scaleXZ := 2 * centerOffset / pillar.Size()[0]
+	scaleY := 1.3 * wall.Size()[1] * wallScale / pillar.Size()[1]
+
+	for _, sign := range [4][2]float32{{1, 1}, {1, -1}, {-1, 1}, {-1, -1}} {
+		transform := TransformFromXYZ(sign[0]*corner, 0, sign[1]*corner).WithScaleXYZ(scaleXZ, scaleY, scaleXZ)
+		spawnProp(commands, pillar, transform, PropSettings{})
 	}
 }
 
