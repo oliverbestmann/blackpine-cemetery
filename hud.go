@@ -67,7 +67,7 @@ func hudPlugin(app *App) {
 func spawnHudSystem(commands *Commands, assets *GameAssets) {
 	commands.Spawn(
 		Round{},
-		Camera{Order: 1},
+		Camera{Order: 2},
 		Camera2d,
 		ClearColor{Color: ColorSRGBA(0, 0, 0, 0)},
 		OrthographicProjection{

@@ -335,6 +335,7 @@ func spawnViewModels(commands *Commands, models *Models, assets *GameAssets, cam
 				MeshInstance{Mesh: model.Merged},
 				model.Material,
 				NotShadowCaster{},
+				RenderLayersOf(viewModelLayer),
 			)
 		}
 
@@ -349,6 +350,8 @@ func spawnViewModels(commands *Commands, models *Models, assets *GameAssets, cam
 			MeshInstance{Mesh: assets.Sphere},
 			assets.FireMaterial,
 			NotShadowCaster{},
+			// layer 0 for the bloom of the main camera, the weapon camera draws it above the gun
+			RenderLayersOf(0, viewModelLayer),
 		).Id()
 
 		commands.Spawn(

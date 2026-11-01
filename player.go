@@ -115,8 +115,27 @@ func spawnPlayerSystem(commands *Commands, assets *GameAssets, models *Models) {
 		TransformFromXYZ(playerStart.Add(glm.Vec3f{0, playerEyeOffset, 0}).XYZ()),
 	).Id()
 
+	// draws only the view models on top of the world, so they never clip into walls
+	commands.Spawn(
+		ChildOf{Parent: camera},
+		NewTransform(),
+		Camera{Order: 1},
+		Camera3d,
+		HDR{},
+		ClearColor{Color: ColorSRGBA(0, 0, 0, 0)},
+		RenderLayersOf(viewModelLayer),
+		EnvironmentMapLight{
+			DiffuseMap:  assets.Diffuse,
+			SpecularMap: assets.Specular,
+			Intensity:   environmentIntensity,
+		},
+		PerspectiveProjection{Fov: glm.DegToRad(80), Near: 0.01, Far: 10},
+	)
+
 	spawnViewModels(commands, models, assets, camera)
 }
+
+const viewModelLayer = 2
 
 const (
 	skyBrightness        = 1
