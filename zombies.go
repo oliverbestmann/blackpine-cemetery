@@ -219,6 +219,7 @@ func zombieSteerSystem(
 		Transform      Transform
 		LinearVelocity *physics.LinearVelocity
 	}],
+	cars Query[*Car],
 ) {
 	player, ok := players.Single()
 	if !ok {
@@ -227,6 +228,23 @@ func zombieSteerSystem(
 
 	dt := vt.DeltaSecs
 	target := player.Transform.Translation
+
+	// a driving player is out of reach, zombies attack the car instead
+	car, driving := cars.Get(player.Player.Driving)
+	reach := float32(0)
+	if driving {
+		reach = carZombieReach
+	}
+
+	hurt := func(amount float32) {
+		if driving {
+			car.Health -= amount
+		} else {
+			player.Player.Health -= amount
+		}
+
+		player.Player.Damaged = 0.4
+	}
 
 	for item := range zombies.Items() {
 		z := item.Zombie
@@ -239,7 +257,10 @@ func zombieSteerSystem(
 		}
 
 		if z.Kind == ZombieGhost {
-			steerGhost(z, item.Transform.Translation, item.LinearVelocity, player.Player, target, dt)
+			if steerGhost(z, item.Transform.Translation, item.LinearVelocity, player.Player, target, reach, dt) {
+				hurt(zombieKinds[z.Kind].damage)
+			}
+
 			continue
 		}
 
@@ -259,10 +280,9 @@ func zombieSteerSystem(
 		// attack the player when close
 		z.Attack -= dt
 		distance := flat(target.Sub(pos)).Length()
-		if distance < zombieAttackRange*z.Scale/2.1 && z.Attack <= 0 && player.Player.Health > 0 && player.Player.Driving == NoEntityId {
+		if distance < zombieAttackRange*z.Scale/2.1+reach && z.Attack <= 0 && player.Player.Health > 0 {
 			z.Attack = zombieAttackSecs
-			player.Player.Health -= zombieKinds[z.Kind].damage
-			player.Player.Damaged = 0.4
+			hurt(zombieKinds[z.Kind].damage)
 
 			for camera := range cameras.Items() {
 				camera.Camera.Shake = max(camera.Camera.Shake, 0.6)
@@ -272,8 +292,8 @@ func zombieSteerSystem(
 }
 
 // steerGhost flies a ghost: cruise towards the player up high, dive at him when close,
-// climb away after an attack.
-func steerGhost(z *Zombie, pos glm.Vec3f, velocity *physics.LinearVelocity, player *Player, target glm.Vec3f, dt float32) {
+// climb away after an attack. It returns true when the ghost hits.
+func steerGhost(z *Zombie, pos glm.Vec3f, velocity *physics.LinearVelocity, player *Player, target glm.Vec3f, reach, dt float32) bool {
 	z.Attack -= dt
 	z.Phase += dt * 4
 
@@ -317,11 +337,12 @@ func steerGhost(z *Zombie, pos glm.Vec3f, velocity *physics.LinearVelocity, play
 
 	velocity.Vec3f = v
 
-	if z.Attack <= 0 && target.Sub(pos).Length() < ghostAttackRange && player.Health > 0 && player.Driving == NoEntityId {
+	if z.Attack <= 0 && target.Sub(pos).Length() < ghostAttackRange+reach && player.Health > 0 {
 		z.Attack = zombieAttackSecs + ghostClimbSecs
-		player.Health -= zombieKinds[z.Kind].damage
-		player.Damaged = 0.4
+		return true
 	}
+
+	return false
 }
 
 // zombieAnimateSystem animates the walk procedurally: swinging legs, arms reaching forward.

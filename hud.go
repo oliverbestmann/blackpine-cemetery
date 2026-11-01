@@ -28,6 +28,11 @@ var hudFont = sync.OnceValue(func() Font {
 })
 
 // HudPin places a hud element relative to a screen corner or edge.
+// Crosshair marks the crosshair sprite, it hides while driving.
+type Crosshair struct {
+	Component[Crosshair]
+}
+
 type HudPin struct {
 	ComparableComponent[HudPin]
 
@@ -82,7 +87,7 @@ type DamageFlash struct {
 }
 
 func hudPlugin(app *App) {
-	app.AddSystems(Update, hudPinSystem, System(hudTextSystem, damageFlashSystem, enemyMarkerSystem).RunIf(NotInState(GameStateLoading)))
+	app.AddSystems(Update, hudPinSystem, System(hudTextSystem, damageFlashSystem, enemyMarkerSystem, crosshairSystem).RunIf(NotInState(GameStateLoading)))
 }
 
 func spawnHudSystem(commands *Commands, assets *GameAssets) {
@@ -103,6 +108,8 @@ func spawnHudSystem(commands *Commands, assets *GameAssets) {
 		TransformFromXYZ(0, 0, 0.5),
 		Sprite{Texture: assets.CrosshairTexture, CustomSize: Some(glm.Vec2f{24, 24})},
 		RenderLayersOf(hudLayer),
+		Visibility{},
+		Crosshair{},
 	)
 
 	// full screen overlay below the hud texts, the shader does not read the texture
@@ -267,6 +274,22 @@ func hudSize(screen ScreenSize) glm.Vec2f {
 	return screen.Vec2f.Scale(scale)
 }
 
+func crosshairSystem(players Query[Player], crosshairs Query[struct {
+	_          With[Crosshair]
+	Visibility *Visibility
+}],
+) {
+	player, _ := players.Single()
+
+	for item := range crosshairs.Items() {
+		if player.Driving != NoEntityId {
+			item.Visibility.SetInvisible()
+		} else {
+			item.Visibility.SetInherit()
+		}
+	}
+}
+
 func hudPinSystem(screen ScreenSize, pins Query[struct {
 	Pin       HudPin
 	Transform *Transform
@@ -288,6 +311,7 @@ func hudTextSystem(
 	arsenal *Arsenal,
 	waves *Waves,
 	zombies Query[Zombie],
+	cars Query[Car],
 	texts Query[struct {
 		HudText HudText
 		Text    *Text
@@ -308,6 +332,9 @@ func hudTextSystem(
 
 		case hudAmmo:
 			value = arsenal.hudText()
+			if car, ok := cars.Get(player.Driving); ok {
+				value = fmt.Sprintf("CAR %d%%", int(math.Ceil(float64(max(0, car.Health)*100/carMaxHealth))))
+			}
 
 		case hudScore:
 			value = fmt.Sprintf("SCORE %d", stats.Score)

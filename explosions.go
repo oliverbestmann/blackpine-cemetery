@@ -115,6 +115,10 @@ func explosionSystem(
 		Tree      Tree
 		Transform Transform
 	}],
+	cars Query[struct {
+		Car       *Car
+		Transform Transform
+	}],
 ) {
 	for _, ex := range reader.Read() {
 		world.Explode(ex.Position, ex.Radius*0.6, ex.Radius*0.6, 120)
@@ -148,6 +152,10 @@ func explosionSystem(
 				item.Explosive.Lit = true
 				item.Explosive.Fuse = 0.15 + rng.Float32()*0.25
 			}
+		}
+
+		for car := range cars.Items() {
+			car.Car.Health -= explosiveDamage(ex.Damage, ex.Radius, car.Transform.Translation.Sub(ex.Position).Length())
 		}
 
 		for tree := range trees.Items() {

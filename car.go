@@ -25,6 +25,12 @@ const (
 	// zombies within this distance of the car center get run over
 	carHitRange = 2.6
 	carHitSpeed = 4
+
+	// zombies claw at the car from its hull, a bit further away than at the player
+	carZombieReach = 1.8
+
+	carMaxHealth   = 300
+	carRespawnSecs = 15
 )
 
 var carStart = glm.Vec3f{7, 0, 14}
@@ -38,10 +44,18 @@ type Car struct {
 
 	// Engine is the looping engine sound while someone drives.
 	Engine EntityId
+
+	Health float32
+
+	// Wrecked counts down to the respawn after the car blew up.
+	Wrecked float32
+
+	// Smoke counts down to the next smoke puff of a damaged car.
+	Smoke float32
 }
 
 func carPlugin(app *App) {
-	app.AddSystems(Update, System(enterCarSystem, driveCarSystem, runOverSystem).Chain().RunIf(InState(GameStatePlaying)))
+	app.AddSystems(Update, System(enterCarSystem, driveCarSystem, runOverSystem, carDamageSystem).Chain().RunIf(InState(GameStatePlaying)))
 	app.AddSystems(PostUpdate, System(carCameraSystem).InSet(beforeTransforms).RunIf(InState(GameStatePlaying)))
 }
 
@@ -51,7 +65,7 @@ func spawnCarSystem(commands *Commands, models *Models) {
 		WithRotation(glm.RotationYQuat(glm.DegToRad(-30))).
 		WithScaleXYZ(s, s, s)
 
-	spawnProp(commands, models.Get(carModel), transform, PropSettings{Dynamic: true, Density: 150, Slices: 3}, Car{})
+	spawnProp(commands, models.Get(carModel), transform, PropSettings{Dynamic: true, Density: 150, Slices: 3}, Car{Health: carMaxHealth})
 }
 
 // carForward is the direction the car drives to, flat on the ground. The Kenney cars face +z.
@@ -95,26 +109,7 @@ func enterCarSystem(
 			return
 		}
 
-		// get out on the left side
-		forward := carForward(car.Transform.Rotation)
-		side := glm.Vec3f{forward[2], 0, -forward[0]}
-		exit := car.Transform.Translation.Add(side.Scale(2.6))
-		exit[1] = max(exit[1], playerHalfHeight+0.1)
-
-		player.Player.Driving = NoEntityId
-		// the camera looks along -z
-		player.Player.Yaw = yawTowards(forward) + math.Pi
-		player.Player.previous = exit
-		player.Player.current = exit
-
-		commands.Entity(player.EntityId).Remove[physics.Disabled]().Insert(physics.Teleport{Position: exit})
-		commands.Entity(car.EntityId).Remove[physics.ControlledVelocity]()
-
-		if car.Car.Engine != NoEntityId {
-			commands.Entity(car.Car.Engine).Despawn()
-			car.Car.Engine = NoEntityId
-		}
-
+		exitCar(commands, player.EntityId, player.Player, car.EntityId, car.Car, car.Transform)
 		return
 	}
 
@@ -127,7 +122,7 @@ func enterCarSystem(
 			dist = item.Transform.Translation.Sub(carStart).Length()
 		}
 
-		if dist < bestDist {
+		if dist < bestDist && item.Car.Health > 0 {
 			target, bestDist = item.EntityId, dist
 		}
 	}
@@ -148,6 +143,96 @@ func enterCarSystem(
 			AudioPlayerOf(assets.Sounds.Engine[0]),
 			PlaybackSettingsLoop.WithVolume(0.5).WithSpatial(),
 		).Id()
+	}
+}
+
+// exitCar puts the player next to the car and stops the engine.
+func exitCar(commands *Commands, playerId EntityId, player *Player, carId EntityId, car *Car, transform Transform) {
+	// get out on the left side
+	forward := carForward(transform.Rotation)
+	side := glm.Vec3f{forward[2], 0, -forward[0]}
+	exit := transform.Translation.Add(side.Scale(2.6))
+	exit[1] = max(exit[1], playerHalfHeight+0.1)
+
+	player.Driving = NoEntityId
+	// the camera looks along -z
+	player.Yaw = yawTowards(forward) + math.Pi
+	player.previous = exit
+	player.current = exit
+
+	commands.Entity(playerId).Remove[physics.Disabled]().Insert(physics.Teleport{Position: exit})
+	commands.Entity(carId).Remove[physics.ControlledVelocity]()
+
+	if car.Engine != NoEntityId {
+		commands.Entity(car.Engine).Despawn()
+		car.Engine = NoEntityId
+	}
+}
+
+// carDamageSystem blows up the car when its health runs out, lets a damaged car smoke
+// and puts a wreck back to the start after a while.
+func carDamageSystem(
+	vt VirtualTime,
+	commands *Commands,
+	assets *GameAssets,
+	rng *GameRng,
+	explosions *MessageWriter[Explosion],
+	players Query[struct {
+		EntityId EntityId
+		Player   *Player
+	}],
+	cars Query[struct {
+		EntityId  EntityId
+		Car       *Car
+		Transform Transform
+	}],
+) {
+	for car := range cars.Items() {
+		c := car.Car
+		pos := car.Transform.Translation
+
+		if c.Wrecked > 0 {
+			c.Wrecked -= vt.DeltaSecs
+			if c.Wrecked <= 0 {
+				c.Health = carMaxHealth
+				commands.Entity(car.EntityId).Insert(physics.Teleport{
+					Position: carStart.Add(glm.Vec3f{0, 1, 0}),
+					Rotation: glm.RotationYQuat(glm.DegToRad(-30)),
+					Rotate:   true,
+				})
+			}
+		} else if c.Health <= 0 {
+			c.Wrecked = carRespawnSecs
+
+			if player, ok := players.Single(); ok && player.Player.Driving == car.EntityId {
+				// thrown out, the explosion hurts him as he is now outside
+				exitCar(commands, player.EntityId, player.Player, car.EntityId, c, car.Transform)
+			}
+
+			// the blast pushes the wreck too
+			explosions.Write(Explosion{Position: pos, Radius: 10, Damage: 150})
+		}
+
+		if c.Health > carMaxHealth*0.4 {
+			continue
+		}
+
+		// smoke gets thicker with damage, the wreck smokes the most
+		c.Smoke -= vt.DeltaSecs
+		if c.Smoke > 0 {
+			continue
+		}
+
+		c.Smoke = 0.05 + 0.25*max(0, c.Health)/(carMaxHealth*0.4)
+		s := 0.4 + 0.4*rng.Float32()
+		spawnParticle(commands, assets.Sphere, assets.SmokeMaterial, pos.Add(glm.Vec3f{0, 1.2, 0}).Add(randomInSphere(rng.Rand).Scale(0.4)), Particle{
+			Velocity:   randomInSphere(rng.Rand).Add(glm.Vec3f{0, 2.5, 0}),
+			Gravity:    -1,
+			Drag:       1,
+			Life:       1.2 + rng.Float32()*0.6,
+			StartScale: glm.Vec3f{s, s, s},
+			EndScale:   glm.Vec3f{s, s, s}.Scale(2),
+		})
 	}
 }
 
@@ -258,7 +343,8 @@ func driveCarSystem(
 
 	velocity, yawRate := carVelocity(car.LinearVelocity.Vec3f, carForward(car.Transform.Rotation), throttle, steer, dt)
 	car.LinearVelocity.Vec3f = velocity
-	car.AngularVelocity.Vec3f = glm.Vec3f{0, yawRate, 0}
+	// steer the yaw only, keep roll and pitch from collisions so the car can tip over
+	car.AngularVelocity.Vec3f[1] = yawRate
 }
 
 // runOverSystem kills zombies in front of a fast car.
@@ -277,6 +363,10 @@ func runOverSystem(
 		Zombie    Zombie
 		Transform Transform
 	}],
+	explosives Query[struct {
+		Explosive *Explosive
+		Transform Transform
+	}],
 ) {
 	for car := range cars.Items() {
 		velocity := car.LinearVelocity.Vec3f
@@ -286,6 +376,14 @@ func runOverSystem(
 		}
 
 		pos := car.Transform.Translation
+
+		// rammed barrels blow up, the explosion damages the car
+		for e := range explosives.Items() {
+			offset := e.Transform.Translation.Sub(pos)
+			if flat(offset).Length() < carHitRange+0.6 && offset.Dot(velocity) > 0 && e.Explosive.Health < 1e8 {
+				e.Explosive.Health = 0
+			}
+		}
 
 		for z := range zombies.Items() {
 			offset := z.Transform.Translation.Sub(pos)
