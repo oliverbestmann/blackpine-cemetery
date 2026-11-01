@@ -85,6 +85,7 @@ func spawnGround(commands *Commands, assets *GameAssets) {
 		physics.RigidBody{Type: physics.Static},
 		physics.CollisionLayers{Category: layerWorld, Mask: layerAll},
 		physics.CuboidCollider(glm.Vec3f{size / 2, 1, size / 2}).WithOffset(glm.Vec3f{0, -1, 0}),
+		physics.NoDebugCollider{},
 	)
 }
 
@@ -146,6 +147,9 @@ type PropSettings struct {
 
 	// Shrink the box collider by this factor, e.g. for round things like trees
 	ColliderScale glm.Vec3f
+
+	// HullCollider uses the convex hull of the model instead of its bounding box.
+	HullCollider bool
 }
 
 // spawnProp spawns a model as a single entity with a box collider around it.
@@ -156,6 +160,11 @@ func spawnProp(commands *Commands, model *Model, transform Transform, settings P
 	}
 
 	center := model.Min.Add(model.Max).Scale(0.5)
+
+	collider := physics.CuboidCollider(half).WithOffset(center)
+	if settings.HullCollider {
+		collider = physics.HullCollider(model.Merged.Vertices())
+	}
 
 	body := physics.RigidBody{Type: physics.Static, Density: settings.Density}
 	layers := physics.CollisionLayers{Category: layerWorld, Mask: layerAll}
@@ -172,7 +181,7 @@ func spawnProp(commands *Commands, model *Model, transform Transform, settings P
 		model.Material,
 		body,
 		layers,
-		physics.CuboidCollider(half).WithOffset(center),
+		collider,
 	}
 
 	return commands.Spawn(append(components, extra...)...).Id()
@@ -363,15 +372,15 @@ func spawnScenery(commands *Commands, models *Models, rng *rand.Rand) {
 	for range 25 {
 		pos := randomArenaPosition(rng, 4)
 		s := 3 + rng.Float32()*3
-		spawnProp(commands, models.Get(rocks[rng.IntN(len(rocks))]), TransformFromXYZ(pos.XYZ()).WithRotation(randomYaw(rng)).WithScaleXYZ(s, s, s), PropSettings{})
+		spawnProp(commands, models.Get(rocks[rng.IntN(len(rocks))]), TransformFromXYZ(pos.XYZ()).WithRotation(randomYaw(rng)).WithScaleXYZ(s, s, s), PropSettings{HullCollider: true})
 	}
 
-	// abandoned cars, heavy but explosions still flip them
+	// abandoned cars, heavy but explosions still flip them. The player can drive them too
 	cars := []string{"car/taxi", "car/suv", "car/van", "car/truck", "car/police"}
 	for range 10 {
 		pos := randomArenaPosition(rng, 8)
 		model := models.Get(cars[rng.IntN(len(cars))])
 		s := float32(scaleCar)
-		spawnProp(commands, model, TransformFromXYZ(pos.XYZ()).WithRotation(randomYaw(rng)).WithScaleXYZ(s, s, s), PropSettings{Dynamic: true, Density: 150})
+		spawnProp(commands, model, TransformFromXYZ(pos.XYZ()).WithRotation(randomYaw(rng)).WithScaleXYZ(s, s, s), PropSettings{Dynamic: true, Density: 150}, Car{})
 	}
 }

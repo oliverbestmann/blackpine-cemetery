@@ -7,14 +7,20 @@ import (
 	"github.com/oliverbestmann/byke/byke2d/glm"
 )
 
-// PluginDebugColliders renders the colliders of dynamic bodies and sensors as transparent meshes.
+// PluginDebugColliders renders the colliders of all bodies and sensors as transparent meshes.
+// Bodies with NoDebugCollider are skipped.
 //
-// shortcut: only hull shapes (boxes, cylinders, hulls) are drawn, add spheres, capsules and
-// meshes when they are used on dynamic bodies or sensors.
+// shortcut: only hulls (boxes, cylinders, hulls) and triangle meshes are drawn, add spheres
+// and capsules when they need checking.
 func PluginDebugColliders(app *byke.App) {
 	app.AddSystems(byke.Update, func(commands *byke.Commands, bodies byke.Query[debugBody]) {
 		debugColliders(commands, bodies, false)
 	})
+}
+
+// NoDebugCollider hides the collider of a body from PluginDebugColliders, e.g. for the ground.
+type NoDebugCollider struct {
+	byke.ImmutableComponent[NoDebugCollider]
 }
 
 // PluginDebugSensors works like PluginDebugColliders, but only renders the sensors.
@@ -31,11 +37,12 @@ type debugBody struct {
 	RigidBody RigidBody
 	Body      physicsBody
 	Sensor    byke.Has[Sensor]
+	Hidden    byke.Has[NoDebugCollider]
 }
 
 func debugColliders(commands *byke.Commands, bodies byke.Query[debugBody], sensorsOnly bool) {
 	for item := range bodies.Items() {
-		if !item.Sensor.Exists() && (sensorsOnly || item.RigidBody.Type != Dynamic) {
+		if item.Hidden.Exists() || (sensorsOnly && !item.Sensor.Exists()) {
 			continue
 		}
 
@@ -48,7 +55,13 @@ func debugColliders(commands *byke.Commands, bodies byke.Query[debugBody], senso
 		}
 
 		for _, shape := range item.Body.Body.GetShapes(nil) {
-			if shape.GetType() != b3.HullShape {
+			var mesh *byke2d.Mesh
+			switch shape.GetType() {
+			case b3.HullShape:
+				mesh = hullMesh(shape.GetHull())
+			case b3.MeshShape:
+				mesh = triangleMesh(shape.GetMesh())
+			default:
 				continue
 			}
 
@@ -59,7 +72,7 @@ func debugColliders(commands *byke.Commands, bodies byke.Query[debugBody], senso
 			commands.Spawn(
 				byke.ChildOf{Parent: item.EntityId},
 				transform,
-				byke2d.MeshInstance{Mesh: hullMesh(shape.GetHull())},
+				byke2d.MeshInstance{Mesh: mesh},
 				byke2d.StandardMaterial{
 					BaseColor:           color,
 					EmissiveScale:       emission,
@@ -110,6 +123,28 @@ func hullMesh(hull *b3.HullData) *byke2d.Mesh {
 	}
 
 	// the standard material needs uvs, the debug color has no texture
+	mesh := byke2d.MeshOf(indices, vertices).WithAttributes(byke2d.VertexAttributeUV, make([]glm.Vec2f, len(vertices)))
+	mesh.ComputeNormals()
+	return mesh
+}
+
+// triangleMesh copies the triangles of a mesh shape, with separate vertices per triangle for flat shading.
+func triangleMesh(shape b3.Mesh) *byke2d.Mesh {
+	points := shape.Data.Vertices()
+	scale := toGlmVec(shape.Scale)
+
+	var vertices []glm.Vec3f
+	for _, tri := range shape.Data.Triangles() {
+		for _, idx := range []int32{tri.Index1, tri.Index2, tri.Index3} {
+			vertices = append(vertices, toGlmVec(points[idx]).Mul(scale))
+		}
+	}
+
+	indices := make([]uint32, len(vertices))
+	for idx := range indices {
+		indices[idx] = uint32(idx)
+	}
+
 	mesh := byke2d.MeshOf(indices, vertices).WithAttributes(byke2d.VertexAttributeUV, make([]glm.Vec2f, len(vertices)))
 	mesh.ComputeNormals()
 	return mesh

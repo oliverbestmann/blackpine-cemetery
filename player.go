@@ -47,6 +47,12 @@ type Player struct {
 
 	// Driving is the car the player sits in, if any.
 	Driving EntityId
+
+	// DeadFor counts the seconds since the player died.
+	DeadFor float32
+
+	// deathEye is the eye position at the moment of death, the camera stays there.
+	deathEye glm.Vec3f
 }
 
 // PlayerCamera is the camera, it follows the player.
@@ -263,10 +269,21 @@ func cameraFollowSystem(
 	rotation := glm.RotationYQuat(player.Yaw + shakeYaw).
 		Mul(glm.RotationXQuat(player.Pitch + glm.Rad(camera.Camera.Kick) + shakePitch))
 
-	// dead: lying on the ground, looking at the feet of the crowd
+	// dead: the camera drops to the ground where the player died and looks at the feet of the crowd
 	if player.Health <= 0 {
-		position[1] = 0.3
-		rotation = rotation.Mul(glm.RotationZQuat(glm.Rad(1.2)))
+		if player.DeadFor == 0 {
+			player.deathEye = position
+		}
+
+		player.DeadFor += vt.DeltaSecs
+		fall := min(1, player.DeadFor/0.5)
+		fall *= fall
+
+		position = player.deathEye
+		position[1] += (0.3 - position[1]) * fall
+		rotation = glm.RotationYQuat(player.Yaw).
+			Mul(glm.RotationXQuat(player.Pitch * glm.Rad(1-fall))).
+			Mul(glm.RotationZQuat(glm.Rad(1.2 * fall)))
 	}
 
 	camera.Transform.Translation = position

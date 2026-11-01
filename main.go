@@ -54,6 +54,9 @@ func main() {
 	app.InsertResource(GlobalAmbientLightNone)
 
 	app.AddPlugin(physics.Plugin)
+	if os.Getenv("ZOMBIES_DEBUG") != "" {
+		app.AddPlugin(physics.PluginDebugColliders)
+	}
 	app.AddPlugin(gamePlugin)
 
 	if path := os.Getenv("ZOMBIES_SCREENSHOT"); path != "" {

@@ -89,13 +89,9 @@ func enterCarSystem(
 		return
 	}
 
-	car, ok := cars.Single()
-	if !ok {
-		return
-	}
-
 	if player.Player.Driving != NoEntityId {
-		if testInput.Drive {
+		car, ok := cars.Get(player.Player.Driving)
+		if !ok || testInput.Drive {
 			return
 		}
 
@@ -122,7 +118,22 @@ func enterCarSystem(
 		return
 	}
 
-	if flat(car.Transform.Translation.Sub(player.Transform.Translation)).Length() > carEnterRange && !testInput.Drive {
+	// the closest car in reach
+	target, bestDist := NoEntityId, float32(carEnterRange)
+	for item := range cars.Items() {
+		dist := flat(item.Transform.Translation.Sub(player.Transform.Translation)).Length()
+		if testInput.Drive {
+			// the test drive takes the police car at the start
+			dist = item.Transform.Translation.Sub(carStart).Length()
+		}
+
+		if dist < bestDist {
+			target, bestDist = item.EntityId, dist
+		}
+	}
+
+	car, ok := cars.Get(target)
+	if !ok {
 		return
 	}
 

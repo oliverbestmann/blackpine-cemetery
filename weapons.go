@@ -364,6 +364,12 @@ func viewModelSystem(
 		offset = offset.Add(bob).Add(glm.Vec3f{0, -arsenal.raise * 0.4, recoil * 0.15})
 
 		rotation := glm.RotationXQuat(glm.Rad(recoil * 0.5))
+
+		// dead: the gun drops out of the hands
+		if dead := player.Player.DeadFor; dead > 0 {
+			offset = offset.Add(glm.Vec3f{0, -3 * dead * dead, 0.3 * dead})
+			rotation = rotation.Mul(glm.RotationXQuat(glm.Rad(-2 * dead))).Mul(glm.RotationZQuat(glm.Rad(dead)))
+		}
 		if def.SpinUp > 0 {
 			// the whole gun rattles while spinning
 			rotation = rotation.Mul(glm.RotationZQuat(glm.Rad(arsenal.spin * 0.03 * sin32(t*60))))
