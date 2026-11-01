@@ -41,7 +41,35 @@ type Model struct {
 
 	// Min and Max bound the whole model in model space.
 	Min, Max glm.Vec3f
+
+	// merged is the data of Merged
+	merged meshBuilder
+
+	// pieces caches Pieces, so the broken parts of all instances share their meshes
+	pieces []*Model
 }
+
+// Pieces cuts the model into horizontal slabs, the parts it breaks into.
+func (m *Model) Pieces() []*Model {
+	if m.pieces != nil {
+		return m.pieces
+	}
+
+	for _, slab := range m.merged.slice(modelPieces) {
+		// slivers make no useful piece
+		if len(slab.vertices) < 4 {
+			continue
+		}
+
+		piece := &Model{Material: m.Material, Merged: slab.build(), merged: slab}
+		piece.Min, piece.Max = piece.Merged.AABB()
+		m.pieces = append(m.pieces, piece)
+	}
+
+	return m.pieces
+}
+
+const modelPieces = 4
 
 // Size is the extent of the model's bounding box.
 func (m *Model) Size() glm.Vec3f {
@@ -87,7 +115,8 @@ func loadModel(h *gltf.Handle, material StandardMaterial) *Model {
 		walk(node, -1, glm.IdentityMat4f())
 	}
 
-	model.Merged = mergeParts(model.Parts)
+	model.merged = mergeParts(model.Parts)
+	model.Merged = model.merged.build()
 	model.Min, model.Max = model.Merged.AABB()
 
 	return model
@@ -159,7 +188,7 @@ func toUint32(raw any) []uint32 {
 }
 
 // mergeParts merges the meshes of all parts into model space.
-func mergeParts(parts []ModelPart) *Mesh {
+func mergeParts(parts []ModelPart) meshBuilder {
 	var b meshBuilder
 
 	for _, part := range parts {
@@ -170,7 +199,7 @@ func mergeParts(parts []ModelPart) *Mesh {
 		b.add(part.data.vertices, part.data.normals, part.data.uvs, part.data.indices, part.Model)
 	}
 
-	return b.build()
+	return b
 }
 
 // meshBuilder collects triangles with normals and uvs.
