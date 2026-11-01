@@ -1,13 +1,10 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	. "github.com/oliverbestmann/byke"
 	. "github.com/oliverbestmann/byke/byke2d"
@@ -66,29 +63,10 @@ func submitScoreSystem(commands *Commands, stats *Stats) {
 	)
 }
 
-func postScore(game, player string, score int) ([]highscoreEntry, error) {
+// highscoreEndpoint is the url to post a score to.
+func highscoreEndpoint(game, player string, score int) string {
 	query := url.Values{"player": {player}, "score": {fmt.Sprint(score)}}
-	endpoint := fmt.Sprintf(highscoreURL, url.PathEscape(game)) + "?" + query.Encode()
-
-	client := http.Client{Timeout: 10 * time.Second}
-
-	resp, err := client.Post(endpoint, "", nil)
-	if err != nil {
-		return nil, err
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status %s", resp.Status)
-	}
-
-	var entries []highscoreEntry
-	if err := json.NewDecoder(resp.Body).Decode(&entries); err != nil {
-		return nil, fmt.Errorf("decode response: %w", err)
-	}
-
-	return entries, nil
+	return fmt.Sprintf(highscoreURL, url.PathEscape(game)) + "?" + query.Encode()
 }
 
 // leaderboardSystem shows the highscores once the server answered.

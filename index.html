@@ -107,8 +107,12 @@
             form.remove();
             document.getElementById("loading").classList.add("started");
 
-            wasm = await instantiate;
-            await go.run(wasm.instance);
+            const result = await instantiate;
+
+            // TinyGo exports the memory as "memory", the webgpu bindings expect Go's "mem"
+            const exports = result.instance.exports;
+            wasm = exports.mem ? result : {module: result.module, instance: {exports: {...exports, mem: exports.memory}}};
+            await go.run(result.instance);
         }
 
         addEventListener("DOMContentLoaded", () => void main());
