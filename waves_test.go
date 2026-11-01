@@ -3,6 +3,9 @@ package main
 import (
 	"math/rand/v2"
 	"testing"
+
+	b3 "github.com/oliverbestmann/box3d-go"
+	"github.com/oliverbestmann/zombies/physics"
 )
 
 func TestWavesGrow(t *testing.T) {
@@ -39,8 +42,11 @@ func TestSpawnPositionAwayFromPlayer(t *testing.T) {
 	rng := &GameRng{rand.New(rand.NewPCG(1, 2))}
 	player := graveyardCenter
 
+	world := physics.PhysicsWorld{World: b3.CreateWorld(b3.DefaultWorldDef())}
+	defer world.World.DestroyWorld()
+
 	for range 1000 {
-		pos := spawnPosition(rng, player)
+		pos := spawnPosition(rng, world, player)
 		if flat(pos.Sub(player)).Length() <= 25 {
 			t.Fatalf("zombie spawned at %v, too close to the player", pos)
 		}

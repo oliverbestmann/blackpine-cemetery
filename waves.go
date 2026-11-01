@@ -10,6 +10,7 @@ import (
 	. "github.com/oliverbestmann/byke"
 	. "github.com/oliverbestmann/byke/byke2d"
 	"github.com/oliverbestmann/byke/byke2d/glm"
+	"github.com/oliverbestmann/zombies/physics"
 )
 
 // Waves spawns the zombies of the current wave over time.
@@ -69,6 +70,7 @@ func waveSystem(
 	commands *Commands,
 	models *Models,
 	rng *GameRng,
+	world physics.PhysicsWorld,
 	stats *Stats,
 	waves *Waves,
 	players Query[struct {
@@ -110,7 +112,7 @@ func waveSystem(
 		alive++
 
 		kind := waveKind(stats.Wave, rng.Float32())
-		position := spawnPosition(rng, player.Transform.Translation)
+		position := spawnPosition(rng, world, player.Transform.Translation)
 		spawnZombie(commands, models, kind, position, yawTowards(player.Transform.Translation.Sub(position)), zombieRiseSecs)
 	}
 
@@ -118,9 +120,9 @@ func waveSystem(
 }
 
 // spawnPosition picks where a zombie climbs out of the ground: mostly in the graveyard,
-// sometimes anywhere in the arena, but never right next to the player.
-func spawnPosition(rng *GameRng, player glm.Vec3f) glm.Vec3f {
-	for {
+// sometimes anywhere in the arena, but never right next to the player or inside a tree, crypt or car.
+func spawnPosition(rng *GameRng, world physics.PhysicsWorld, player glm.Vec3f) glm.Vec3f {
+	for try := 0; ; try++ {
 		var pos glm.Vec3f
 
 		if rng.Float32() < 0.6 {
@@ -137,7 +139,16 @@ func spawnPosition(rng *GameRng, player glm.Vec3f) glm.Vec3f {
 			}
 		}
 
-		if flat(pos.Sub(player)).Length() > 25 {
+		if flat(pos.Sub(player)).Length() <= 25 {
+			continue
+		}
+
+		// a capsule a bit larger than a brute, lifted off the ground
+		const radius = 0.7
+		blocked := world.OverlapsCapsule(pos.Add(glm.Vec3f{0, 0.1 + radius, 0}), pos.Add(glm.Vec3f{0, 2.5, 0}), radius, layerWorld|layerProp|layerCar)
+
+		// give up eventually, a blocked zombie is better than a frozen game
+		if !blocked || try > 50 {
 			return pos
 		}
 	}

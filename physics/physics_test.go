@@ -132,6 +132,19 @@ func TestBoxFallsOntoTriMesh(t *testing.T) {
 		t.Fatalf("expected to hit the box top at distance 8, got %+v (ok=%v)", hit, ok)
 	}
 
+	mask := ^uint64(0)
+	if !physicsWorld.OverlapsCapsule(glm.Vec3f{0, 1.4, 0}, glm.Vec3f{0, 2.5, 0}, 0.2, mask) {
+		t.Fatal("capsule through the box should overlap")
+	}
+
+	if physicsWorld.OverlapsCapsule(glm.Vec3f{3, 1.4, 0}, glm.Vec3f{3, 2.5, 0}, 0.2, mask) {
+		t.Fatal("capsule next to the box should not overlap")
+	}
+
+	if !physicsWorld.OverlapsCapsule(glm.Vec3f{3, 0.5, 0}, glm.Vec3f{3, 1.5, 0}, 0.2, mask) {
+		t.Fatal("capsule through the ground mesh should overlap")
+	}
+
 	hit.ApplyImpulse(glm.Vec3f{2 * hit.Mass(), 0, 0})
 	world.RunSchedule(byke.FixedUpdate)
 	world.RunSchedule(byke.FixedPostUpdate)
