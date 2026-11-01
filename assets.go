@@ -43,6 +43,7 @@ var modelFiles = []string{
 	"graveyard/rocks",
 	"graveyard/lightpost-single",
 	"graveyard/debris",
+	"graveyard/shovel",
 	"blaster/blaster-a",
 	"blaster/blaster-b",
 	"blaster/blaster-c",

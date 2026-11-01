@@ -41,7 +41,8 @@ type Drop struct {
 
 // rollDrop decides what a killed zombie drops, if anything.
 func rollDrop(rng *rand.Rand, kind ZombieKind, wave int) (Drop, bool) {
-	weapon := WeaponKind(1 + rng.IntN(int(weaponCount)-1))
+	// a gun, not the machine gun or the shovel the player always has
+	weapon := WeaponKind(1 + rng.IntN(int(Shovel)-1))
 
 	// brutes always drop a big gun
 	if kind == ZombieBrute {

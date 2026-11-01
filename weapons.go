@@ -20,6 +20,7 @@ const (
 	Gatling
 	GrenadeLauncher
 	RocketLauncher
+	Shovel
 	weaponCount
 )
 
@@ -29,7 +30,16 @@ const (
 	Hitscan ProjectileKind = iota
 	GrenadeShot
 	RocketShot
+
+	// Melee hits everything in reach in front of the player, it needs no ammo.
+	Melee
 )
+
+// meleeRange is the reach of melee weapons from the eyes.
+const meleeRange = 2.6
+
+// shovelHold turns the shovel so the blade points forward, the handle comes towards the camera.
+var shovelHold = glm.RotationXQuat(glm.DegToRad(100)).Mul(glm.RotationZQuat(glm.DegToRad(-20)))
 
 // WeaponDef describes a weapon.
 type WeaponDef struct {
@@ -115,6 +125,13 @@ var weapons = [weaponCount]WeaponDef{
 		Sound: func(s *Sounds) SoundSet { return s.Launch }, Volume: 0.6, Kick: 0.06,
 		ViewOffset: glm.Vec3f{0.3, -0.25, -0.55}, ViewScale: 0.7,
 	},
+	Shovel: {
+		Name: "SHOVEL", Model: "graveyard/shovel",
+		Interval: 0.45, Damage: 45, Pellets: 1, Push: 7,
+		Projectile: Melee,
+		Sound:      func(s *Sounds) SoundSet { return nil }, Kick: 0.03,
+		ViewOffset: glm.Vec3f{0.36, -0.45, -0.25}, ViewScale: 1.4,
+	},
 }
 
 // Arsenal holds the player's weapons and ammo.
@@ -145,6 +162,7 @@ func newArsenal() Arsenal {
 	}
 
 	a.Owned[MachineGun] = true
+	a.Owned[Shovel] = true
 	a.Current = MachineGun
 	a.raise = 1
 	return a
@@ -152,7 +170,16 @@ func newArsenal() Arsenal {
 
 func (a *Arsenal) hudText() string {
 	def := weapons[a.Current]
+	if def.Projectile == Melee {
+		return def.Name
+	}
+
 	return fmt.Sprintf("%s  %d", def.Name, a.Ammo[a.Current])
+}
+
+// hasAmmo reports if a weapon can fire, melee weapons always can.
+func (a *Arsenal) hasAmmo(kind WeaponKind) bool {
+	return weapons[kind].Projectile == Melee || a.Ammo[kind] > 0
 }
 
 // Give adds a weapon and its pickup ammo. It returns true if the weapon is new.
@@ -183,7 +210,7 @@ func (a *Arsenal) Select(kind WeaponKind) {
 func (a *Arsenal) Cycle(dir int) {
 	for step := 1; step < int(weaponCount); step++ {
 		kind := WeaponKind((int(a.Current) + dir*step + 2*int(weaponCount)) % int(weaponCount))
-		if a.Owned[kind] && a.Ammo[kind] > 0 {
+		if a.Owned[kind] && a.hasAmmo(kind) {
 			a.Select(kind)
 			return
 		}
@@ -217,9 +244,12 @@ func (a *Arsenal) Trigger(dt float32, held bool) int {
 	}
 
 	shots := 0
-	for a.cooldown <= 0 && a.Ammo[a.Current] > 0 {
+	for a.cooldown <= 0 && a.hasAmmo(a.Current) {
 		a.cooldown += interval
-		a.Ammo[a.Current]--
+		if def.Projectile != Melee {
+			a.Ammo[a.Current]--
+		}
+
 		shots++
 	}
 
@@ -252,7 +282,7 @@ func weaponsPlugin(app *App) {
 }
 
 func weaponSelectSystem(keys Keys, arsenal *Arsenal) {
-	digits := []vyn.Key{vyn.KeyDigit1, vyn.KeyDigit2, vyn.KeyDigit3, vyn.KeyDigit4, vyn.KeyDigit5, vyn.KeyDigit6}
+	digits := []vyn.Key{vyn.KeyDigit1, vyn.KeyDigit2, vyn.KeyDigit3, vyn.KeyDigit4, vyn.KeyDigit5, vyn.KeyDigit6, vyn.KeyDigit7}
 	for idx, key := range digits {
 		if keys.IsJustPressed(key) {
 			arsenal.Select(WeaponKind(idx))
@@ -268,7 +298,7 @@ func weaponSelectSystem(keys Keys, arsenal *Arsenal) {
 	}
 
 	// out of ammo, take the next weapon
-	if arsenal.Ammo[arsenal.Current] == 0 {
+	if !arsenal.hasAmmo(arsenal.Current) {
 		arsenal.Cycle(1)
 	}
 }
@@ -291,17 +321,28 @@ func spawnViewModels(commands *Commands, models *Models, assets *GameAssets, cam
 				ViewModel{Kind: WeaponKind(kind), Side: side},
 			).Id()
 
+			// the Kenney blasters point along -z, like the camera
+			transform := NewTransform()
+			if def.Projectile == Melee {
+				// the grip at the top of the handle is the pivot
+				grip := shovelHold.Transform(glm.Vec3f{0, model.Max[1] * 0.9, 0})
+				transform = TransformFromXYZ(grip.Scale(-1).XYZ()).WithRotation(shovelHold)
+			}
+
 			commands.Spawn(
 				ChildOf{Parent: gun},
-				// the Kenney blasters point along -z, like the camera
-				NewTransform(),
+				transform,
 				MeshInstance{Mesh: model.Merged},
 				model.Material,
 				NotShadowCaster{},
 			)
 		}
 
-		// a light and a glow at the muzzle of each weapon
+		if def.Projectile == Melee {
+			continue
+		}
+
+		// a light and a glow at the muzzle of each gun
 		glow := commands.Spawn(
 			ChildOf{Parent: camera},
 			TransformFromXYZ(muzzleOffset(def, 0).XYZ()).WithScaleXYZ(1e-4, 1e-4, 1e-4),
@@ -364,12 +405,22 @@ func viewModelSystem(
 		offset = offset.Add(bob).Add(glm.Vec3f{0, -arsenal.raise * 0.4, recoil * 0.15})
 
 		rotation := glm.RotationXQuat(glm.Rad(recoil * 0.5))
+		if def.Projectile == Melee {
+			rotation = glm.IdentityQuat()
+		}
 
 		// dead: the gun drops out of the hands
 		if dead := player.Player.DeadFor; dead > 0 {
 			offset = offset.Add(glm.Vec3f{0, -3 * dead * dead, 0.3 * dead})
 			rotation = rotation.Mul(glm.RotationXQuat(glm.Rad(-2 * dead))).Mul(glm.RotationZQuat(glm.Rad(dead)))
 		}
+		if def.Projectile == Melee && arsenal.cooldown > 0 {
+			// a jab forward and down, out and back over one swing
+			swing := sin32(math.Pi * (1 - arsenal.cooldown/def.Interval))
+			offset = offset.Add(glm.Vec3f{-0.15 * swing, 0.05 * swing, -0.4 * swing})
+			rotation = glm.RotationYQuat(glm.Rad(0.35 * swing)).Mul(glm.RotationXQuat(glm.Rad(-0.3 * swing)))
+		}
+
 		if def.SpinUp > 0 {
 			// the whole gun rattles while spinning
 			rotation = rotation.Mul(glm.RotationZQuat(glm.Rad(arsenal.spin * 0.03 * sin32(t*60))))
@@ -466,6 +517,11 @@ func fireSystem(
 
 		playUI(commands, budget, def.Sound(&assets.Sounds), def.Volume)
 
+		if def.Projectile == Melee {
+			swingMelee(commands, world, budget, assets, damages, propHits, def, origin, rotation)
+			continue
+		}
+
 		for range def.Pellets {
 			spread := glm.RotationYQuat(glm.Rad((rng.Float32()*2 - 1) * def.Spread)).
 				Mul(glm.RotationXQuat(glm.Rad((rng.Float32()*2 - 1) * def.Spread)))
@@ -545,6 +601,50 @@ func fireHitscan(
 	}
 
 	spawnTracer(commands, assets, muzzle, end)
+}
+
+// swingMelee hits everything within reach in a flat cone in front of the camera, each thing once.
+func swingMelee(
+	commands *Commands,
+	world physics.PhysicsWorld,
+	budget *SoundBudget,
+	assets *GameAssets,
+	damages *MessageWriter[ZombieDamage],
+	propHits *MessageWriter[PropHit],
+	def WeaponDef,
+	origin glm.Vec3f,
+	rotation glm.Quat,
+) {
+	const rays = 5
+
+	struck := map[EntityId]bool{}
+
+	for idx := range rays {
+		yaw := glm.Rad((float32(idx)/(rays-1)*2 - 1) * 0.45)
+		dir := rotation.Mul(glm.RotationYQuat(yaw)).Transform(glm.Vec3f{0, 0, -1})
+
+		hit, ok := world.CastRayMask(origin, dir, meleeRange, hitscanMask)
+		if !ok || struck[hit.Entity] {
+			continue
+		}
+
+		struck[hit.Entity] = true
+
+		damages.Write(ZombieDamage{
+			Zombie: hit.Entity,
+			Amount: def.Damage,
+			Push:   dir.Scale(def.Push).Add(glm.Vec3f{0, 2, 0}),
+			Point:  hit.Point,
+		})
+
+		propHits.Write(PropHit{Entity: hit.Entity, Damage: def.Damage})
+
+		if hit.IsDynamic() {
+			hit.ApplyImpulse(dir.Scale(min(hit.Mass()*def.Push*0.5, 40*def.Push)))
+		}
+
+		playAt(commands, budget, assets.Sounds.Hit, hit.Point, 0.6)
+	}
 }
 
 // spawnTracer draws a short glowing line from the muzzle towards the hit point.

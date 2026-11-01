@@ -112,7 +112,7 @@ func startRoundSystem(vt VirtualTime, commands *Commands, arsenal *Arsenal, wave
 	}
 
 	stats := Stats{Wave: 1}
-	stats.Show(vt, "THE DEAD ARE RISING\nWASD + MOUSE - 1-6 WEAPONS - F CAR", 5*time.Second)
+	stats.Show(vt, "THE DEAD ARE RISING\nWASD + MOUSE - 1-7 WEAPONS - F CAR", 5*time.Second)
 	commands.InsertResource(stats)
 	*arsenal = newArsenal()
 

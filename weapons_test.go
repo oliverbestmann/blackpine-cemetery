@@ -73,6 +73,11 @@ func TestCycleSkipsEmptyAndMissingWeapons(t *testing.T) {
 	}
 
 	arsenal.Cycle(1)
+	if arsenal.Current != Shovel {
+		t.Fatalf("expected the shovel, got %v", arsenal.Current)
+	}
+
+	arsenal.Cycle(1)
 	if arsenal.Current != MachineGun {
 		t.Fatalf("expected the machine gun, got %v", arsenal.Current)
 	}
@@ -89,5 +94,26 @@ func TestExplosiveDamageFalloff(t *testing.T) {
 
 	if d := explosiveDamage(100, 10, 12); d != 0 {
 		t.Fatalf("no damage outside, got %v", d)
+	}
+}
+
+func TestShovelNeedsNoAmmo(t *testing.T) {
+	arsenal := newArsenal()
+	arsenal.Ammo[MachineGun] = 0
+
+	// the empty machine gun switches to the shovel
+	arsenal.Cycle(1)
+	if arsenal.Current != Shovel {
+		t.Fatalf("expected the shovel, got %v", arsenal.Current)
+	}
+
+	swings := 0
+	for range 120 {
+		swings += arsenal.Trigger(1.0/60, true)
+	}
+
+	expected := int((2 - 0.125) / weapons[Shovel].Interval)
+	if swings < expected-1 || swings > expected+1 {
+		t.Fatalf("expected about %d swings, got %d", expected, swings)
 	}
 }

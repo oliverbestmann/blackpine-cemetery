@@ -9,7 +9,7 @@ func TestRollDropBruteAlwaysDropsWeapon(t *testing.T) {
 	rng := rand.New(rand.NewPCG(1, 2))
 	for range 100 {
 		drop, ok := rollDrop(rng, ZombieBrute, 1)
-		if !ok || drop.Kind != PickupWeapon || drop.Weapon == MachineGun || drop.Weapon >= weaponCount {
+		if !ok || drop.Kind != PickupWeapon || drop.Weapon == MachineGun || drop.Weapon >= Shovel {
 			t.Fatalf("unexpected drop %+v %v", drop, ok)
 		}
 	}
