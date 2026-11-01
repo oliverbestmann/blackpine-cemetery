@@ -145,26 +145,14 @@ type PropSettings struct {
 	// Density in kg/m³ of the collider, zero for the default of 1000
 	Density float32
 
-	// Shrink the box collider by this factor, e.g. for round things like trees
-	ColliderScale glm.Vec3f
-
-	// HullCollider uses the convex hull of the model instead of its bounding box.
-	HullCollider bool
+	// Slices cuts the model into this many horizontal slabs with one convex hull each,
+	// for models that get narrower or wider with the height, like trees. Zero means one hull.
+	Slices int
 }
 
-// spawnProp spawns a model as a single entity with a box collider around it.
+// spawnProp spawns a model as a single entity with convex hull colliders around it.
 func spawnProp(commands *Commands, model *Model, transform Transform, settings PropSettings, extra ...ErasedComponent) EntityId {
-	half := model.Size().Scale(0.5)
-	if settings.ColliderScale != (glm.Vec3f{}) {
-		half = half.Mul(settings.ColliderScale)
-	}
-
-	center := model.Min.Add(model.Max).Scale(0.5)
-
-	collider := physics.CuboidCollider(half).WithOffset(center)
-	if settings.HullCollider {
-		collider = physics.HullCollider(model.Merged.Vertices())
-	}
+	collider := slicedHullCollider(model.Merged, settings.Slices)
 
 	body := physics.RigidBody{Type: physics.Static, Density: settings.Density}
 	layers := physics.CollisionLayers{Category: layerWorld, Mask: layerAll}
@@ -237,7 +225,7 @@ func spawnGraveyard(commands *Commands, models *Models, rng *rand.Rand) {
 			tilt := glm.RotationYQuat(glm.Rad(rng.Float32()*0.4 - 0.2)).Mul(glm.RotationXQuat(glm.Rad(rng.Float32()*0.2 - 0.1)))
 
 			// light and loose, explosions toss them around
-			spawnProp(commands, model, TransformFromXYZ(pos.XYZ()).WithRotation(tilt).WithScaleXYZ(s, s, s), PropSettings{Dynamic: true, Density: 400})
+			spawnProp(commands, model, TransformFromXYZ(pos.XYZ()).WithRotation(tilt).WithScaleXYZ(s, s, s), PropSettings{Dynamic: true, Density: 400, Slices: 3})
 		}
 	}
 
@@ -333,7 +321,7 @@ func spawnScenery(commands *Commands, models *Models, rng *rand.Rand) {
 		scale := 3.5 + rng.Float32()*2
 		model := models.Get(trees[rng.IntN(len(trees))])
 		spawnProp(commands, model, TransformFromXYZ(pos.XYZ()).WithRotation(randomYaw(rng)).WithScaleXYZ(scale, scale, scale),
-			PropSettings{ColliderScale: glm.Vec3f{0.15, 1, 0.15}})
+			PropSettings{Slices: 4})
 	}
 
 	// clusters of loose props
@@ -380,7 +368,7 @@ func spawnScenery(commands *Commands, models *Models, rng *rand.Rand) {
 	for range 25 {
 		pos := randomArenaPosition(rng, 4)
 		s := 3 + rng.Float32()*3
-		spawnProp(commands, models.Get(rocks[rng.IntN(len(rocks))]), TransformFromXYZ(pos.XYZ()).WithRotation(randomYaw(rng)).WithScaleXYZ(s, s, s), PropSettings{HullCollider: true})
+		spawnProp(commands, models.Get(rocks[rng.IntN(len(rocks))]), TransformFromXYZ(pos.XYZ()).WithRotation(randomYaw(rng)).WithScaleXYZ(s, s, s), PropSettings{})
 	}
 
 	// abandoned cars, heavy but explosions still flip them. The player can drive them too
@@ -389,6 +377,6 @@ func spawnScenery(commands *Commands, models *Models, rng *rand.Rand) {
 		pos := randomArenaPosition(rng, 8)
 		model := models.Get(cars[rng.IntN(len(cars))])
 		s := float32(scaleCar)
-		spawnProp(commands, model, TransformFromXYZ(pos.XYZ()).WithRotation(randomYaw(rng)).WithScaleXYZ(s, s, s), PropSettings{Dynamic: true, Density: 150}, Car{})
+		spawnProp(commands, model, TransformFromXYZ(pos.XYZ()).WithRotation(randomYaw(rng)).WithScaleXYZ(s, s, s), PropSettings{Dynamic: true, Density: 150, Slices: 3}, Car{})
 	}
 }

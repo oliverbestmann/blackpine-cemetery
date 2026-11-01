@@ -96,6 +96,7 @@ const (
 	cuboidCollider
 	trimeshCollider
 	hullCollider
+	compoundCollider
 )
 
 // Collider is an explicit collision shape in the local space of the body entity.
@@ -110,6 +111,7 @@ type Collider struct {
 	offset      glm.Vec3f
 	vertices    []glm.Vec3f
 	indices     []uint32
+	parts       []Collider
 }
 
 func SphereCollider(radius float32) Collider {
@@ -144,6 +146,27 @@ func CylinderCollider(radius, height float32) Collider {
 // maxHullVertices vertices. If the hull fails, the bounding box is used instead.
 func HullCollider(points []glm.Vec3f) Collider {
 	return Collider{kind: hullCollider, vertices: points}
+}
+
+// CompoundCollider combines several colliders into one body, e.g. convex hulls around
+// the parts of a concave model. Compounds can not be nested.
+func CompoundCollider(parts ...Collider) Collider {
+	return Collider{kind: compoundCollider, parts: parts}
+}
+
+// flatten returns the parts of a compound collider, moved by its offset, or the collider itself.
+func (c Collider) flatten() []Collider {
+	if c.kind != compoundCollider {
+		return []Collider{c}
+	}
+
+	parts := make([]Collider, len(c.parts))
+	for idx, part := range c.parts {
+		part.offset = part.offset.Add(c.offset)
+		parts[idx] = part
+	}
+
+	return parts
 }
 
 // WithOffset moves the collider by offset in the local space of the body entity.
@@ -336,7 +359,9 @@ func createBodiesSystem(
 		var colliders []scaledCollider
 
 		if c, ok := item.Collider.Get(); ok {
-			colliders = append(colliders, scaledCollider{c, scale})
+			for _, part := range c.flatten() {
+				colliders = append(colliders, scaledCollider{part, scale})
+			}
 		}
 
 		if ctor, ok := item.Constructor.Get(); ok {
@@ -541,8 +566,9 @@ func addShape(body b3.Body, def b3.ShapeDef, bodyType BodyType, c Collider, scal
 	return b3.OwnedMesh{}
 }
 
-// maxHullVertices is the vertex limit of convex hulls, box3d supports up to 128.
-const maxHullVertices = 64
+// maxHullVertices is the vertex limit of convex hulls. box3d allows 128 edges, a hull with
+// v vertices has up to 3v-6 edges, so round shapes with more than 44 vertices fail.
+const maxHullVertices = 44
 
 // cuboidBox returns the half extents and center of a cuboid collider with scale applied.
 func cuboidBox(c Collider, scale glm.Vec3f) (half, center glm.Vec3f) {

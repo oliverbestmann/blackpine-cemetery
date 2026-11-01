@@ -255,8 +255,9 @@ func TestCylinderAndHullColliders(t *testing.T) {
 		t.Fatalf("expected to hit the cylinder side at distance 1.7, got %+v (ok=%v)", hit, ok)
 	}
 
+	// the hull has at most maxHullVertices vertices, its faces are a bit inside the sphere
 	item, _ = query.Get(ballId)
-	if y := item.Transform.Translation[1]; math.Abs(float64(y-0.5)) > 0.03 {
+	if y := item.Transform.Translation[1]; math.Abs(float64(y-0.5)) > 0.06 {
 		t.Fatalf("hull ball should rest at y=0.5, is at y=%v", y)
 	}
 }

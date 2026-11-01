@@ -51,7 +51,7 @@ func spawnCarSystem(commands *Commands, models *Models) {
 		WithRotation(glm.RotationYQuat(glm.DegToRad(-30))).
 		WithScaleXYZ(s, s, s)
 
-	spawnProp(commands, models.Get(carModel), transform, PropSettings{Dynamic: true, Density: 150}, Car{})
+	spawnProp(commands, models.Get(carModel), transform, PropSettings{Dynamic: true, Density: 150, Slices: 3}, Car{})
 }
 
 // carForward is the direction the car drives to, flat on the ground. The Kenney cars face +z.
