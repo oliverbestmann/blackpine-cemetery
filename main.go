@@ -98,6 +98,7 @@ func gamePlugin(app *App) {
 	projectilesPlugin(app)
 	pickupsPlugin(app)
 	carPlugin(app)
+	campfirePlugin(app)
 	scorePlugin(app)
 	soundsPlugin(app)
 }

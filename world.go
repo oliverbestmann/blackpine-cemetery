@@ -70,6 +70,7 @@ func spawnWorldSystem(commands *Commands, models *Models, assets *GameAssets) {
 	spawnScenery(commands, models, rng)
 	spawnVegetation(commands, models, rng)
 	spawnRoad(commands, models, rng)
+	spawnCamp(commands, models, assets, rng)
 }
 
 func spawnGround(commands *Commands, assets *GameAssets) {
@@ -384,6 +385,11 @@ func keepClear(pos glm.Vec3f) bool {
 
 	// an open field between the start and the graveyard
 	if math.Abs(float64(pos[0])) < 10 && pos[2] > -25 && pos[2] < 20 {
+		return true
+	}
+
+	// the survivor camp
+	if flat(pos.Sub(campCenter)).Length() < 12 {
 		return true
 	}
 
