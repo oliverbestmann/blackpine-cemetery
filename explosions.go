@@ -110,9 +110,9 @@ func explosionSystem(
 		Explosive *Explosive
 		Transform Transform
 	}],
-	trees Query[struct {
+	breakables Query[struct {
 		EntityId  EntityId
-		Tree      Tree
+		Breakable Breakable
 		Transform Transform
 	}],
 	cars Query[struct {
@@ -158,23 +158,17 @@ func explosionSystem(
 			car.Car.Health -= explosiveDamage(ex.Damage, ex.Radius, car.Transform.Translation.Sub(ex.Position).Length())
 		}
 
-		for tree := range trees.Items() {
-			offset := flat(tree.Transform.Translation.Sub(ex.Position))
+		for b := range breakables.Items() {
+			offset := flat(b.Transform.Translation.Sub(ex.Position))
 			distance := offset.Length()
 			if distance >= ex.Radius*0.6 {
 				continue
 			}
 
-			// the static trimesh tree becomes a dynamic one with hulls that tips away from the blast.
-			// the new body exists only after the next step, so it gets its push as start velocity.
+			// it tips away from the blast
 			away := offset.Scale(1 / max(distance, 0.1))
 			strength := 1 - distance/(ex.Radius*0.6)
-
-			commands.Entity(tree.EntityId).Despawn()
-			spawnProp(commands, tree.Tree.Model, tree.Transform, PropSettings{Dynamic: true, Density: 300, Slices: 4},
-				physics.LinearVelocity{Vec3f: away.Scale(3 * strength)},
-				physics.AngularVelocity{Vec3f: glm.Vec3f{0, 1, 0}.Cross(away).Scale(0.5 + 1.5*strength)},
-			)
+			breakLoose(commands, b.EntityId, b.Breakable, b.Transform, away.Scale(3*strength), glm.Vec3f{0, 1, 0}.Cross(away).Scale(0.5+1.5*strength))
 		}
 
 		for player := range players.Items() {

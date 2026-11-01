@@ -424,6 +424,11 @@ func runOverSystem(
 		Explosive *Explosive
 		Transform Transform
 	}],
+	breakables Query[struct {
+		EntityId  EntityId
+		Breakable Breakable
+		Transform Transform
+	}],
 ) {
 	for car := range cars.Items() {
 		velocity := car.LinearVelocity.Vec3f
@@ -439,6 +444,17 @@ func runOverSystem(
 			offset := e.Transform.Translation.Sub(pos)
 			if flat(offset).Length() < car.Car.HitRange+0.6 && offset.Dot(velocity) > 0 && e.Explosive.Health < 1e8 {
 				e.Explosive.Health = 0
+			}
+		}
+
+		// heavy trucks plow through walls and trees. A bit of extra range, so they break
+		// before the static body stops the truck.
+		if car.Car.Kind.MaxHealth >= 600 && speed > 2*carHitSpeed {
+			for b := range breakables.Items() {
+				offset := b.Transform.Translation.Sub(pos)
+				if flat(offset).Length() < car.Car.HitRange+1.5 && offset.Dot(velocity) > 0 {
+					breakLoose(commands, b.EntityId, b.Breakable, b.Transform, velocity.Scale(0.6), glm.Vec3f{0, 1, 0}.Cross(velocity).Scale(0.1))
+				}
 			}
 		}
 

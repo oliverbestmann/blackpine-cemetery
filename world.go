@@ -163,10 +163,21 @@ type PropSettings struct {
 	TriMesh bool
 }
 
-// Tree is a static tree. An explosion close by knocks it over.
-type Tree struct {
-	Component[Tree]
-	Model *Model
+// Breakable is static scenery, a tree or a wall segment. Explosions and heavy cars knock it loose.
+type Breakable struct {
+	Component[Breakable]
+	Model   *Model
+	Density float32
+}
+
+// breakLoose replaces the static body with a dynamic one. The new body exists only after
+// the next step, so it gets its push as start velocity.
+func breakLoose(commands *Commands, id EntityId, b Breakable, transform Transform, velocity, spin glm.Vec3f) {
+	commands.Entity(id).Despawn()
+	spawnProp(commands, b.Model, transform, PropSettings{Dynamic: true, Density: b.Density, Slices: 4},
+		physics.LinearVelocity{Vec3f: velocity},
+		physics.AngularVelocity{Vec3f: spin},
+	)
 }
 
 // spawnProp spawns a model as a single entity with convex hull colliders around it.
@@ -324,13 +335,13 @@ func spawnGraveyard(commands *Commands, models *Models, assets *GameAssets, rng 
 		spawnProp(commands, bench, TransformFromXYZ(pos.XYZ()).WithRotation(glm.RotationYQuat(glm.Rad(math.Pi))).WithScaleXYZ(s, s, s), PropSettings{Dynamic: true, Density: 500})
 	}
 
-	// iron fence around the graveyard, with gaps for the dead to walk through
-	fence := models.Get("graveyard/iron-fence")
-	damaged := models.Get("graveyard/iron-fence-damaged")
+	// stone wall around the graveyard, with gaps for the dead to walk through
+	fence := models.Get("graveyard/stone-wall")
+	damaged := models.Get("graveyard/stone-wall-damaged")
 	fenceLength := fence.Size()[0] * s
 
 	// static pillars at the corners, the lines stop short of them. Lines that meet in a
-	// corner would overlap, and the physics would push the dynamic segments over.
+	// corner would overlap, and the physics would push broken segments over.
 	pillar := models.Get("graveyard/pillar-square")
 	inset := pillar.Size()[0]*s/2 + 0.05
 
@@ -359,7 +370,8 @@ func spawnGraveyard(commands *Commands, models *Models, assets *GameAssets, rng 
 
 			// the model is off center in depth, put it on the line so the corners meet
 			pos := from.Add(dir.Scale((float32(idx) + 0.5) * step)).Sub(rotation.Transform(glm.Vec3f{0, 0, depthOffset}))
-			spawnProp(commands, model, TransformFromXYZ(pos.XYZ()).WithRotation(rotation).WithScaleXYZ(stretch, s, s), PropSettings{Dynamic: true, Density: 300})
+			spawnProp(commands, model, TransformFromXYZ(pos.XYZ()).WithRotation(rotation).WithScaleXYZ(stretch, s, s), PropSettings{},
+				Breakable{Model: model, Density: 800})
 		}
 	}
 
@@ -428,7 +440,7 @@ func spawnScenery(commands *Commands, models *Models, rng *rand.Rand) {
 		scale := 3.5 + rng.Float32()*2
 		model := models.Get(trees[rng.IntN(len(trees))])
 		spawnProp(commands, model, TransformFromXYZ(pos.XYZ()).WithRotation(randomYaw(rng)).WithScaleXYZ(scale, scale, scale),
-			PropSettings{TriMesh: true}, Tree{Model: model})
+			PropSettings{TriMesh: true}, Breakable{Model: model, Density: 300})
 	}
 
 	// rows of trees behind the walls, out of reach, so they need no physics
