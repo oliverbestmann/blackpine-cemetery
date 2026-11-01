@@ -36,8 +36,8 @@ const (
 )
 
 var (
-	// towards the sun of the sky texture, about 8° above the horizon
-	sunDirection = glm.Vec3f{0.777, 0.139, -0.614}.Normalize()
+	// towards the sun of the sky texture, about 74° above the horizon
+	sunDirection = glm.Vec3f{0.218, 0.963, -0.159}.Normalize()
 
 	// the shadow map covers this box around the player
 	sunShadowVolume = glm.Vec3f{60, 60, 300}

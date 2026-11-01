@@ -21,7 +21,7 @@ Style is low poly toy/comic, using the CC0 Kenney kits (all consistent in style)
 - survival-kit: barrels, boxes, rocks
 - sci-fi-sounds + impact-sounds: weapon, explosion and impact sounds
 
-Sky: Poly Haven `kloppenheim_06_puresky` (CC0), tinted red/orange, converted to a cube
+Sky: Poly Haven `kloppenheim_05_puresky` (CC0), tinted red/orange, converted to a cube
 map plus diffuse/specular environment maps with glTF-IBL-Sampler (see `tools/`).
 
 ## Architecture
