@@ -13,27 +13,46 @@ import (
 const (
 	carModel = "car/police"
 
-	carMaxSpeed     = 30
-	carMaxReverse   = 10
-	carAcceleration = 14
-	carBraking      = 35
-	carTurnRate     = 2.2
+	carMaxReverse = 10
+	carBraking    = 35
 
 	// the player enters the car within this distance
 	carEnterRange = 4.5
 
-	// zombies within this distance of the car center get run over
-	carHitRange = 2.6
+	// zombies in front of a car faster than this get run over
 	carHitSpeed = 4
 
 	// zombies claw at the car from its hull, a bit further away than at the player
 	carZombieReach = 1.8
 
-	carMaxHealth   = 300
 	carRespawnSecs = 15
 )
 
 var carStart = glm.Vec3f{7, 0, 14}
+
+// CarKind holds the driving stats of a car model.
+type CarKind struct {
+	MaxHealth    float32
+	Acceleration float32
+	MaxSpeed     float32
+	TurnRate     float32
+}
+
+var defaultCarKind = CarKind{MaxHealth: 300, Acceleration: 14, MaxSpeed: 30, TurnRate: 2.2}
+
+// heavy vehicles take more damage but are slow
+var carKinds = map[string]CarKind{
+	"car/firetruck":     {MaxHealth: 700, Acceleration: 6, MaxSpeed: 22, TurnRate: 1.5},
+	"car/garbage-truck": {MaxHealth: 600, Acceleration: 7, MaxSpeed: 20, TurnRate: 1.5},
+	"car/ambulance":     {MaxHealth: 400, Acceleration: 11, MaxSpeed: 27, TurnRate: 1.9},
+}
+
+var carDebris = []string{
+	"car/debris-bolt", "car/debris-bumper", "car/debris-door", "car/debris-door-window",
+	"car/debris-drivetrain", "car/debris-drivetrain-axle", "car/debris-nut", "car/debris-plate-a",
+	"car/debris-plate-b", "car/debris-plate-small-a", "car/debris-plate-small-b",
+	"car/debris-spoiler-a", "car/debris-spoiler-b", "car/debris-tire",
+}
 
 // Car is the drivable car.
 type Car struct {
@@ -52,6 +71,32 @@ type Car struct {
 
 	// Smoke counts down to the next smoke puff of a damaged car.
 	Smoke float32
+
+	Kind CarKind
+
+	// HitRange is the distance from the center to the front bumper.
+	HitRange float32
+
+	// Home is where the car respawns.
+	Home Transform
+}
+
+// spawnCar spawns a drivable car of the given model.
+func spawnCar(commands *Commands, models *Models, name string, transform Transform) {
+	kind, ok := carKinds[name]
+	if !ok {
+		kind = defaultCarKind
+	}
+
+	model := models.Get(name)
+	car := Car{
+		Health:   kind.MaxHealth,
+		Kind:     kind,
+		HitRange: max(-model.Min[2], model.Max[2])*transform.Scale[2] + 0.4,
+		Home:     transform,
+	}
+
+	spawnProp(commands, model, transform, PropSettings{Dynamic: true, Density: 150, Slices: 3}, car)
 }
 
 func carPlugin(app *App) {
@@ -65,7 +110,10 @@ func spawnCarSystem(commands *Commands, models *Models) {
 		WithRotation(glm.RotationYQuat(glm.DegToRad(-30))).
 		WithScaleXYZ(s, s, s)
 
-	spawnProp(commands, models.Get(carModel), transform, PropSettings{Dynamic: true, Density: 150, Slices: 3}, Car{Health: carMaxHealth})
+	spawnCar(commands, models, carModel, transform)
+
+	// the firetruck waits on the other side of the start
+	spawnCar(commands, models, "car/firetruck", TransformFromXYZ(-9, 0, 16).WithRotation(glm.RotationYQuat(glm.DegToRad(25))).WithScaleXYZ(s, s, s))
 }
 
 // carForward is the direction the car drives to, flat on the ground. The Kenney cars face +z.
@@ -175,6 +223,7 @@ func carDamageSystem(
 	vt VirtualTime,
 	commands *Commands,
 	assets *GameAssets,
+	models *Models,
 	rng *GameRng,
 	explosions *MessageWriter[Explosion],
 	players Query[struct {
@@ -194,10 +243,10 @@ func carDamageSystem(
 		if c.Wrecked > 0 {
 			c.Wrecked -= vt.DeltaSecs
 			if c.Wrecked <= 0 {
-				c.Health = carMaxHealth
+				c.Health = c.Kind.MaxHealth
 				commands.Entity(car.EntityId).Insert(physics.Teleport{
-					Position: carStart.Add(glm.Vec3f{0, 1, 0}),
-					Rotation: glm.RotationYQuat(glm.DegToRad(-30)),
+					Position: c.Home.Translation.Add(glm.Vec3f{0, 1, 0}),
+					Rotation: c.Home.Rotation,
 					Rotate:   true,
 				})
 			}
@@ -211,9 +260,17 @@ func carDamageSystem(
 
 			// the blast pushes the wreck too
 			explosions.Write(Explosion{Position: pos, Radius: 10, Damage: 150})
+
+			// parts fly off
+			for range 8 {
+				at := car.Transform
+				at.Translation = pos.Add(randomInSphere(rng.Rand).Scale(1.5)).Add(glm.Vec3f{0, 1, 0})
+				at.Rotation = randomYaw(rng.Rand)
+				spawnGibs(commands, rng, models.Get(carDebris[rng.IntN(len(carDebris))]), at, glm.Vec3f{0, 4, 0}, 9)
+			}
 		}
 
-		if c.Health > carMaxHealth*0.4 {
+		if c.Health > c.Kind.MaxHealth*0.4 {
 			continue
 		}
 
@@ -223,7 +280,7 @@ func carDamageSystem(
 			continue
 		}
 
-		c.Smoke = 0.05 + 0.25*max(0, c.Health)/(carMaxHealth*0.4)
+		c.Smoke = 0.05 + 0.25*max(0, c.Health)/(c.Kind.MaxHealth*0.4)
 		s := 0.4 + 0.4*rng.Float32()
 		spawnParticle(commands, assets.Sphere, assets.SmokeMaterial, pos.Add(glm.Vec3f{0, 1.2, 0}).Add(randomInSphere(rng.Rand).Scale(0.4)), Particle{
 			Velocity:   randomInSphere(rng.Rand).Add(glm.Vec3f{0, 2.5, 0}),
@@ -237,7 +294,7 @@ func carDamageSystem(
 }
 
 // carVelocity applies the driver's input to the car velocity, it returns the new velocity and yaw rate.
-func carVelocity(velocity glm.Vec3f, forward glm.Vec3f, throttle, steer, dt float32) (glm.Vec3f, float32) {
+func carVelocity(kind CarKind, velocity glm.Vec3f, forward glm.Vec3f, throttle, steer, dt float32) (glm.Vec3f, float32) {
 	speed := velocity.Dot(forward)
 
 	switch {
@@ -245,12 +302,12 @@ func carVelocity(velocity glm.Vec3f, forward glm.Vec3f, throttle, steer, dt floa
 		// braking
 		speed += throttle * carBraking * dt
 	case throttle != 0:
-		speed += throttle * carAcceleration * dt
+		speed += throttle * kind.Acceleration * dt
 	default:
 		speed *= decay(0.6, dt)
 	}
 
-	speed = clamp(speed, -carMaxReverse, carMaxSpeed)
+	speed = clamp(speed, -carMaxReverse, kind.MaxSpeed)
 
 	// the tires grip, sideways sliding fades out quickly
 	lateral := flat(velocity).Sub(forward.Scale(velocity.Dot(forward))).Scale(decay(6, dt))
@@ -259,7 +316,7 @@ func carVelocity(velocity glm.Vec3f, forward glm.Vec3f, throttle, steer, dt floa
 	result[1] = velocity[1]
 
 	// turning needs speed, and reverses when driving backwards
-	yawRate := steer * carTurnRate * clamp(speed/8, -1, 1)
+	yawRate := steer * kind.TurnRate * clamp(speed/8, -1, 1)
 
 	return result, yawRate
 }
@@ -341,7 +398,7 @@ func driveCarSystem(
 		throttle, steer = 1, 0.15
 	}
 
-	velocity, yawRate := carVelocity(car.LinearVelocity.Vec3f, carForward(car.Transform.Rotation), throttle, steer, dt)
+	velocity, yawRate := carVelocity(car.Car.Kind, car.LinearVelocity.Vec3f, carForward(car.Transform.Rotation), throttle, steer, dt)
 	car.LinearVelocity.Vec3f = velocity
 	// steer the yaw only, keep roll and pitch from collisions so the car can tip over
 	car.AngularVelocity.Vec3f[1] = yawRate
@@ -354,7 +411,7 @@ func runOverSystem(
 	assets *GameAssets,
 	damages *MessageWriter[ZombieDamage],
 	cars Query[struct {
-		_              With[Car]
+		Car            Car
 		Transform      Transform
 		LinearVelocity physics.LinearVelocity
 	}],
@@ -380,14 +437,14 @@ func runOverSystem(
 		// rammed barrels blow up, the explosion damages the car
 		for e := range explosives.Items() {
 			offset := e.Transform.Translation.Sub(pos)
-			if flat(offset).Length() < carHitRange+0.6 && offset.Dot(velocity) > 0 && e.Explosive.Health < 1e8 {
+			if flat(offset).Length() < car.Car.HitRange+0.6 && offset.Dot(velocity) > 0 && e.Explosive.Health < 1e8 {
 				e.Explosive.Health = 0
 			}
 		}
 
 		for z := range zombies.Items() {
 			offset := z.Transform.Translation.Sub(pos)
-			if z.Zombie.Dead || abs32(offset[1]) > 2.5 || flat(offset).Length() > carHitRange {
+			if z.Zombie.Dead || abs32(offset[1]) > 2.5 || flat(offset).Length() > car.Car.HitRange {
 				continue
 			}
 

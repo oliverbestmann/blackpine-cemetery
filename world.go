@@ -488,11 +488,10 @@ func spawnScenery(commands *Commands, models *Models, rng *rand.Rand) {
 	}
 
 	// abandoned cars, heavy but explosions still flip them. The player can drive them too
-	cars := []string{"car/taxi", "car/suv", "car/van", "car/truck", "car/police"}
+	cars := []string{"car/taxi", "car/suv", "car/van", "car/truck", "car/police", "car/ambulance", "car/garbage-truck", "car/sedan-sports", "car/hatchback-sports"}
 	for range 10 {
 		pos := randomArenaPosition(rng, 8)
-		model := models.Get(cars[rng.IntN(len(cars))])
 		s := float32(scaleCar)
-		spawnProp(commands, model, TransformFromXYZ(pos.XYZ()).WithRotation(randomYaw(rng)).WithScaleXYZ(s, s, s), PropSettings{Dynamic: true, Density: 150, Slices: 3}, Car{})
+		spawnCar(commands, models, cars[rng.IntN(len(cars))], TransformFromXYZ(pos.XYZ()).WithRotation(randomYaw(rng)).WithScaleXYZ(s, s, s))
 	}
 }

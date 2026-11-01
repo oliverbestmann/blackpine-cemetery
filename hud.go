@@ -333,7 +333,7 @@ func hudTextSystem(
 		case hudAmmo:
 			value = arsenal.hudText()
 			if car, ok := cars.Get(player.Driving); ok {
-				value = fmt.Sprintf("CAR %d%%", int(math.Ceil(float64(max(0, car.Health)*100/carMaxHealth))))
+				value = fmt.Sprintf("CAR %d%%", int(math.Ceil(float64(max(0, car.Health)*100/car.Kind.MaxHealth))))
 			}
 
 		case hudScore:
