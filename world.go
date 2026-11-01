@@ -434,13 +434,30 @@ func randomYaw(rng *rand.Rand) glm.Quat {
 
 func spawnScenery(commands *Commands, models *Models, rng *rand.Rand) {
 	// trees: tall and static until an explosion knocks them over
-	trees := []string{"graveyard/pine", "graveyard/pine-crooked", "graveyard/pine-fall", "graveyard/pine-fall-crooked"}
+	trees := []string{
+		"graveyard/pine", "graveyard/pine-crooked", "graveyard/pine-fall", "graveyard/pine-fall-crooked",
+		"survival/tree", "survival/tree-tall", "survival/tree-autumn", "survival/tree-autumn-tall",
+	}
+
+	// the models come in different sizes, scale them all to about the height of a pine
+	pineHeight := models.Get("graveyard/pine").Size()[1]
+	treeScale := func(model *Model) float32 {
+		return pineHeight / model.Size()[1] * (3.5 + rng.Float32()*2)
+	}
+
 	for range 70 {
 		pos := randomArenaPosition(rng, 4)
-		scale := 3.5 + rng.Float32()*2
 		model := models.Get(trees[rng.IntN(len(trees))])
+		scale := treeScale(model)
 		spawnProp(commands, model, TransformFromXYZ(pos.XYZ()).WithRotation(randomYaw(rng)).WithScaleXYZ(scale, scale, scale),
 			PropSettings{TriMesh: true}, Breakable{Model: model, Density: 300})
+	}
+
+	// stumps of the trees the survivors cut down
+	stumps := []string{"survival/tree-trunk", "survival/tree-autumn-trunk"}
+	for range 15 {
+		pos := randomArenaPosition(rng, 4)
+		spawnProp(commands, models.Get(stumps[rng.IntN(len(stumps))]), TransformFromXYZ(pos.XYZ()).WithRotation(randomYaw(rng)).WithScaleXYZ(scaleSurvival, scaleSurvival, scaleSurvival), PropSettings{})
 	}
 
 	// rows of trees behind the walls, out of reach, so they need no physics
@@ -453,8 +470,8 @@ func spawnScenery(commands *Commands, models *Models, rng *rand.Rand) {
 			for offset := -distance; offset < distance; offset += 6 + rng.Float32()*3 {
 				jitter := (rng.Float32()*2 - 1) * 2
 				pos := rotation.Transform(glm.Vec3f{offset, 0, -distance - jitter})
-				scale := 3.5 + rng.Float32()*2.5
 				model := models.Get(trees[rng.IntN(len(trees))])
+				scale := treeScale(model)
 
 				spawnDecor(commands, model, TransformFromXYZ(pos.XYZ()).WithRotation(randomYaw(rng)).WithScaleXYZ(scale, scale, scale))
 			}

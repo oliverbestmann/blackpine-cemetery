@@ -146,6 +146,12 @@ var modelFiles = []string{
 	"survival/rock-b",
 	"survival/rock-c",
 	"survival/tree-log",
+	"survival/tree",
+	"survival/tree-tall",
+	"survival/tree-autumn",
+	"survival/tree-autumn-tall",
+	"survival/tree-trunk",
+	"survival/tree-autumn-trunk",
 	"survival/resource-planks",
 }
 
