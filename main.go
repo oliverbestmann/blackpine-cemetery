@@ -137,6 +137,9 @@ func startRoundSystem(vt VirtualTime, commands *Commands, arsenal *Arsenal, wave
 }
 
 func spawnLoadingScreenSystem(commands *Commands) {
+	// the game shows its own loading screen from here on
+	hideLoadingIndicator()
+
 	commands.Spawn(
 		Camera{Order: 10},
 		Camera2d,

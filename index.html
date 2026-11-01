@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no"/>
+    <title>Zombies of Hollow Pines</title>
+
+    <style>
+        @font-face {
+            font-family: Creepster;
+            src: url("assets/fonts/Creepster-Regular.ttf") format("truetype");
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: black;
+        }
+
+        canvas {
+            display: block;
+            touch-action: none;
+        }
+
+        /* covers the canvas until the game shows its own loading screen */
+        #loading {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle, #2a0d08, black 70%);
+            font: 24px Creepster, sans-serif;
+            letter-spacing: 1px;
+            color: #fff2d9;
+            text-align: center;
+        }
+
+        h1 {
+            margin: 0;
+            font-weight: normal;
+            font-size: 72px;
+            color: #cc1a0d;
+        }
+
+        #briefing p {
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        #loading form {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        #loading input, #loading button {
+            font: inherit;
+            padding: 8px 12px;
+        }
+
+        /* the spinner shows once the name is entered */
+        #loading.started::after {
+            content: "";
+            width: 48px;
+            height: 48px;
+            border: 4px solid rgba(255, 255, 255, 0.25);
+            border-top-color: #cc1a0d;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+    <script src="wasm_exec.js"></script>
+    <script>
+        /** @type {WebAssemblyInstantiatedSource} */
+        let wasm;
+
+        async function main() {
+            const go = new Go();
+
+            // download while the player enters the name
+            const instantiate = WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject);
+
+            const form = document.getElementById("name-form");
+            const input = document.getElementById("name");
+            input.value = localStorage.getItem("playerName") ?? "";
+
+            await new Promise(resolve => form.addEventListener("submit", ev => {
+                ev.preventDefault();
+                resolve();
+            }, {once: true}));
+
+            // read by the game to submit the highscore, it picks a random name if empty
+            window.playerName = input.value.trim();
+            localStorage.setItem("playerName", window.playerName);
+
+            form.remove();
+            document.getElementById("loading").classList.add("started");
+
+            wasm = await instantiate;
+            await go.run(wasm.instance);
+        }
+
+        addEventListener("DOMContentLoaded", () => void main());
+    </script>
+</head>
+<body>
+<div id="loading">
+    <h1>Zombies of Hollow Pines</h1>
+    <div id="briefing">
+        <p>WASD + mouse to move and shoot - click to grab the mouse<br/>
+            1-7 weapons - F enter a car - R rise again</p>
+    </div>
+    <form id="name-form">
+        <label for="name">Your name for the highscore (empty for a random one)</label>
+        <input id="name" maxlength="24" autofocus autocomplete="nickname"/>
+        <button type="submit">Rise</button>
+    </form>
+</div>
+</body>
+</html>
