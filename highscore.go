@@ -33,7 +33,7 @@ type Leaderboard struct {
 }
 
 // submitScoreSystem posts the score once the player died. It only runs with a
-// player name, which only the web page asks for.
+// player name, see playerName.
 func submitScoreSystem(commands *Commands, stats *Stats) {
 	player := playerName()
 	if player == "" {
