@@ -55,13 +55,26 @@ const (
 	hudEnemies
 )
 
+// EnemyMarker is an arrow around the crosshair that points to one of the last zombies.
+type EnemyMarker struct {
+	ImmutableComponent[EnemyMarker]
+}
+
+const (
+	// markers show up when this many enemies or fewer are left
+	enemyMarkerCount = 5
+
+	// distance in meters of the markers on the floor from the player
+	enemyMarkerDistance = 4
+)
+
 // DamageFlash is the red overlay when the player takes damage.
 type DamageFlash struct {
 	ImmutableComponent[DamageFlash]
 }
 
 func hudPlugin(app *App) {
-	app.AddSystems(Update, hudPinSystem, System(hudTextSystem, damageFlashSystem).RunIf(NotInState(GameStateLoading)))
+	app.AddSystems(Update, hudPinSystem, System(hudTextSystem, damageFlashSystem, enemyMarkerSystem).RunIf(NotInState(GameStateLoading)))
 }
 
 func spawnHudSystem(commands *Commands, assets *GameAssets) {
@@ -121,6 +134,118 @@ func spawnHudSystem(commands *Commands, assets *GameAssets) {
 		Sprite{Texture: assets.SkullTexture, CustomSize: Some(glm.Vec2f{52, 52}), Color: ColorSRGB(1, 0.95, 0.85)},
 		RenderLayersOf(hudLayer),
 	)
+
+	for range enemyMarkerCount {
+		commands.Spawn(
+			Round{},
+			NewTransform(),
+			Sprite{Texture: assets.ArrowTexture, CustomSize: Some(glm.Vec2f{32, 32}), Color: ColorSRGBA(1, 0.15, 0.1, 0)},
+			RenderLayersOf(hudLayer),
+			EnemyMarker{},
+		)
+	}
+}
+
+// enemyMarkerSystem points the markers to the living zombies once few enemies are left.
+func enemyMarkerSystem(
+	waves *Waves,
+	screen ScreenSize,
+	cameras Query[struct {
+		_          With[PlayerCamera]
+		Transform  GlobalTransform
+		Projection PerspectiveProjection
+	}],
+	zombies Query[struct {
+		Zombie    Zombie
+		Transform GlobalTransform
+	}],
+	markers Query[struct {
+		_         With[EnemyMarker]
+		Transform *Transform
+		Sprite    *Sprite
+	}],
+) {
+	camera, ok := cameras.Single()
+
+	var targets []glm.Vec3f
+	left := waves.pending
+	for z := range zombies.Items() {
+		if !z.Zombie.Dead {
+			left++
+			targets = append(targets, z.Transform.Affine.Translation())
+		}
+	}
+
+	if !ok || left > enemyMarkerCount {
+		targets = nil
+	}
+
+	half := hudSize(screen).Scale(0.5)
+	worldToClip := glm.IdentityMat4f()
+	if ok {
+		cameraToWorld := camera.Transform.Affine
+		worldToCamera, _ := cameraToWorld.TryInverse()
+		worldToClip = camera.Projection.ToMat4f(half).Mul(worldToCamera)
+	}
+
+	for marker := range markers.Items() {
+		if len(targets) == 0 {
+			marker.Sprite.Color = ColorSRGBA(1, 0.15, 0.1, 0)
+			continue
+		}
+
+		pos, angle := markerPlacement(camera.Transform.Affine, worldToClip, half, targets[0])
+		targets = targets[1:]
+
+		marker.Sprite.Color = ColorSRGBA(1, 0.15, 0.1, 0.9)
+		marker.Transform.Translation = glm.Vec3f{pos[0], pos[1], 0.4}
+		marker.Transform.Rotation = glm.RotationZQuat(-angle)
+	}
+}
+
+// markerPlacement returns the hud position of the marker for target and the direction
+// it points to, clockwise from up. The marker lies on the floor around the player.
+// If that spot is out of view, it sits at the bottom of the screen instead.
+func markerPlacement(camera, worldToClip glm.Mat4f, half glm.Vec2f, target glm.Vec3f) (glm.Vec2f, glm.Rad) {
+	center := camera.Translation()
+	dir := target.Sub(center)
+	dir[1] = 0
+	dir = dir.Normalize()
+
+	toHud := func(p glm.Vec3f) (glm.Vec2f, bool) {
+		clip := worldToClip.Transform(glm.Vec4f{p[0], 0.02, p[2], 1})
+		if clip[3] <= 0 {
+			return glm.Vec2f{}, false
+		}
+
+		ndc := glm.Vec2f{clip[0] / clip[3], clip[1] / clip[3]}
+		return ndc.Mul(half), max(math.Abs(float64(ndc[0])), math.Abs(float64(ndc[1]))) <= 0.95
+	}
+
+	from, okFrom := toHud(center.Add(dir.Scale(enemyMarkerDistance)))
+	to, okTo := toHud(center.Add(dir.Scale(enemyMarkerDistance + 0.5)))
+	if okFrom && okTo {
+		d := to.Sub(from)
+		return from, glm.Rad(math.Atan2(float64(d[0]), float64(d[1])))
+	}
+
+	// out of view: at the bottom, ahead in the middle and behind at the edges
+	angle := markerAngle(camera, target)
+	x := float32(angle) / math.Pi * (half[0] - 60)
+	return glm.Vec2f{x, -half[1] + 60}, angle
+}
+
+// markerAngle is the bearing of target seen from the camera on the ground plane,
+// 0 is straight ahead and positive angles turn right.
+func markerAngle(camera glm.Mat4f, target glm.Vec3f) glm.Rad {
+	d := target.Sub(camera.Translation())
+	// columns of the camera matrix: x points right, z points backwards
+	right, back := camera[0], camera[2]
+
+	// project onto the ground, so looking up or down does not matter
+	x := d[0]*right[0] + d[2]*right[2]
+	y := -(d[0]*back[0] + d[2]*back[2])
+	return glm.Rad(math.Atan2(float64(x), float64(y)))
 }
 
 // hudSize returns the visible hud area in hud units.
@@ -235,6 +360,35 @@ func whiteTexture(ctx *RenderContext) *Texture {
 	}
 
 	return NewTextureFromImage(ctx, img, TextureFromImageOptions{Label: "White"})
+}
+
+// arrowTexture is a white triangle pointing up with a dark outline.
+func arrowTexture(ctx *RenderContext) *Texture {
+	const size = 64
+	img := image.NewNRGBA(image.Rect(0, 0, size, size))
+
+	// signed distance to a triangle with the tip at the top, negative inside
+	dist := func(x, y float64) float64 {
+		y = size - y // image rows grow downwards
+		base := 8 - y
+		// edges from the tip (32, 60) to the base corners (14, 8) and (50, 8)
+		left := (-(x-32)*52 + (y-60)*18) / math.Hypot(52, 18)
+		right := ((x-32)*52 + (y-60)*18) / math.Hypot(52, 18)
+		return max(base, left, right)
+	}
+
+	for y := range size {
+		for x := range size {
+			d := dist(float64(x)+0.5, float64(y)+0.5)
+			white := min(1, max(0, -d+0.5))
+			alpha := min(1, max(0, -d+3.5))
+
+			gray := uint8(255 * white)
+			img.SetNRGBA(x, y, color.NRGBA{R: gray, G: gray, B: gray, A: uint8(255 * alpha)})
+		}
+	}
+
+	return NewTextureFromImage(ctx, img, TextureFromImageOptions{Label: "Arrow"})
 }
 
 // crosshairTexture is a ring with a dot and a dark outline, visible on any background.

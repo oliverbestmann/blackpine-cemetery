@@ -112,6 +112,7 @@ type GameAssets struct {
 	WhiteTexture     *Texture
 	CrosshairTexture *Texture
 	SkullTexture     *Texture
+	ArrowTexture     *Texture
 
 	// simple meshes for particles and effects
 	Cube, Sphere *Mesh
@@ -260,6 +261,7 @@ func finishLoadingSystem(ctx *RenderContext, commands *Commands, loading *loadin
 		WhiteTexture:     whiteTexture(ctx),
 		CrosshairTexture: crosshairTexture(ctx),
 		SkullTexture:     loading.skull.Await(),
+		ArrowTexture:     arrowTexture(ctx),
 		Cube:             Cube(),
 		Sphere:           Sphere(0.5, 8, 6),
 		BloodMaterial:    plain(ColorSRGB(0.35, 0.01, 0.01), 0.3),

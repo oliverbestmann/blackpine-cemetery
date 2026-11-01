@@ -1,0 +1,73 @@
+package main
+
+import (
+	"math"
+	"testing"
+
+	. "github.com/oliverbestmann/byke/byke2d"
+	"github.com/oliverbestmann/byke/byke2d/glm"
+)
+
+func TestMarkerPlacement(t *testing.T) {
+	half := glm.Vec2f{889, 500}
+	projection := PerspectiveProjection{Fov: glm.DegToRad(80), Near: 0.05, Far: 1000}.ToMat4f(half)
+
+	place := func(pitch float32, target glm.Vec3f) (glm.Vec2f, glm.Rad) {
+		transform := TransformFromXYZ(0, 1.7, 0).WithRotation(glm.RotationXQuat(glm.DegToRad(pitch)))
+		camera := GlobalTransform{Affine: glm.IdentityMat4f()}.Mul(transform).Affine
+		worldToCamera, _ := camera.TryInverse()
+		return markerPlacement(camera, projection.Mul(worldToCamera), half, target)
+	}
+
+	// ahead: on the floor below the crosshair, pointing up
+	pos, angle := place(0, glm.Vec3f{0, 0, -10})
+	if math.Abs(float64(pos[0])) > 1 || pos[1] > -100 || pos[1] < -half[1]+60 || math.Abs(float64(angle)) > 1e-3 {
+		t.Errorf("ahead: %v %v", pos, angle)
+	}
+
+	// ahead and to the right: on the floor right of the center. A floor arrow pointing away from
+	// the player lies in a vertical plane through the eye, so it still points up on screen.
+	pos, angle = place(0, glm.Vec3f{5, 0, -10})
+	if pos[0] < 10 || pos[1] > -100 || math.Abs(float64(angle)) > 1e-3 {
+		t.Errorf("right: %v %v", pos, angle)
+	}
+
+	// behind: at the bottom edge, pointing down
+	pos, angle = place(0, glm.Vec3f{-1, 0, 10})
+	if pos[1] != -half[1]+60 || pos[0] > -half[0]/2 || math.Abs(float64(angle)) < 3 {
+		t.Errorf("behind: %v %v", pos, angle)
+	}
+
+	// looking up, the floor is out of view: at the bottom edge, pointing up
+	pos, angle = place(70, glm.Vec3f{0, 0, -10})
+	if pos != (glm.Vec2f{0, -half[1] + 60}) || angle != 0 {
+		t.Errorf("looking up: %v %v", pos, angle)
+	}
+}
+
+func TestMarkerAngle(t *testing.T) {
+	// camera at (0, 2, 0), turned 90 degrees left, so it looks along -x, and tilted down
+	rotation := glm.RotationYQuat(glm.DegToRad(90)).Mul(glm.RotationXQuat(glm.DegToRad(-30)))
+	camera := GlobalTransform{Affine: glm.IdentityMat4f()}.Mul(TransformFromXYZ(0, 2, 0).WithRotation(rotation)).Affine
+
+	cases := []struct {
+		target glm.Vec3f
+		angle  float64
+	}{
+		{glm.Vec3f{-10, 0, 0}, 0},           // ahead
+		{glm.Vec3f{0, 5, -10}, math.Pi / 2}, // right
+		{glm.Vec3f{0, 0, 10}, -math.Pi / 2}, // left
+		{glm.Vec3f{10, 0, 0}, math.Pi},      // behind
+	}
+
+	for _, c := range cases {
+		got := math.Abs(float64(markerAngle(camera, c.target)))
+		if math.Abs(got-math.Abs(c.angle)) > 1e-4 {
+			t.Errorf("target %v: angle %v, want %v", c.target, got, c.angle)
+		}
+
+		if c.angle != 0 && c.angle != math.Pi && math.Signbit(float64(markerAngle(camera, c.target))) != math.Signbit(c.angle) {
+			t.Errorf("target %v: wrong side", c.target)
+		}
+	}
+}

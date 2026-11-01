@@ -55,7 +55,8 @@ nix develop ../nix -c sh -c 'GOEXPERIMENT=simd go vet ./... && GOEXPERIMENT=simd
 ZOMBIES_DEMO=1 ZOMBIES_AUTOFIRE=1 ZOMBIES_WEAPON=5 nix develop ../nix -c ./screenshot.sh /tmp/z.png 200
 ```
 
-The screenshot writes one image per camera: `/tmp/z.png` is the HUD, `/tmp/z.2.png` the 3D view.
+The screenshot writes one image per camera: `/tmp/z.png` is the HUD, `/tmp/z.2.png` the weapon and
+`/tmp/z.3.png` the 3D view. The order is not guaranteed, check the images.
 Test env vars: `ZOMBIES_DEMO` (crowd in front of the player), `ZOMBIES_AUTOFIRE` (hold the trigger),
 `ZOMBIES_WEAPON=n` (all weapons, select n), `ZOMBIES_DRIVE` (drive the car in circles),
 `ZOMBIES_DEBUG` (debug logs and the physics colliders drawn as transparent meshes).
