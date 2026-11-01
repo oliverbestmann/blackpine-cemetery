@@ -148,11 +148,23 @@ type PropSettings struct {
 	// Slices cuts the model into this many horizontal slabs with one convex hull each,
 	// for models that get narrower or wider with the height, like trees. Zero means one hull.
 	Slices int
+
+	// TriMesh uses the triangles of the model as collider. Static props only.
+	TriMesh bool
+}
+
+// Tree is a static tree. An explosion close by knocks it over.
+type Tree struct {
+	Component[Tree]
+	Model *Model
 }
 
 // spawnProp spawns a model as a single entity with convex hull colliders around it.
 func spawnProp(commands *Commands, model *Model, transform Transform, settings PropSettings, extra ...ErasedComponent) EntityId {
 	collider := slicedHullCollider(model.Merged, settings.Slices)
+	if settings.TriMesh && !settings.Dynamic {
+		collider = physics.TriMeshCollider(model.Merged.Vertices(), model.Merged.Indices())
+	}
 
 	body := physics.RigidBody{Type: physics.Static, Density: settings.Density}
 	layers := physics.CollisionLayers{Category: layerWorld, Mask: layerAll}
@@ -314,14 +326,14 @@ func randomYaw(rng *rand.Rand) glm.Quat {
 }
 
 func spawnScenery(commands *Commands, models *Models, rng *rand.Rand) {
-	// trees: tall and static, the trunk is much thinner than the crown
+	// trees: tall and static until an explosion knocks them over
 	trees := []string{"graveyard/pine", "graveyard/pine-crooked", "graveyard/pine-fall", "graveyard/pine-fall-crooked"}
 	for range 70 {
 		pos := randomArenaPosition(rng, 4)
 		scale := 3.5 + rng.Float32()*2
 		model := models.Get(trees[rng.IntN(len(trees))])
 		spawnProp(commands, model, TransformFromXYZ(pos.XYZ()).WithRotation(randomYaw(rng)).WithScaleXYZ(scale, scale, scale),
-			PropSettings{Slices: 4})
+			PropSettings{TriMesh: true}, Tree{Model: model})
 	}
 
 	// clusters of loose props

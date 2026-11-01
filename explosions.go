@@ -110,6 +110,11 @@ func explosionSystem(
 		Explosive *Explosive
 		Transform Transform
 	}],
+	trees Query[struct {
+		EntityId  EntityId
+		Tree      Tree
+		Transform Transform
+	}],
 ) {
 	for _, ex := range reader.Read() {
 		world.Explode(ex.Position, ex.Radius*0.6, ex.Radius*0.6, 120)
@@ -142,6 +147,25 @@ func explosionSystem(
 				item.Explosive.Lit = true
 				item.Explosive.Fuse = 0.15 + rng.Float32()*0.25
 			}
+		}
+
+		for tree := range trees.Items() {
+			offset := flat(tree.Transform.Translation.Sub(ex.Position))
+			distance := offset.Length()
+			if distance >= ex.Radius*0.6 {
+				continue
+			}
+
+			// the static trimesh tree becomes a dynamic one with hulls that tips away from the blast.
+			// the new body exists only after the next step, so it gets its push as start velocity.
+			away := offset.Scale(1 / max(distance, 0.1))
+			strength := 1 - distance/(ex.Radius*0.6)
+
+			commands.Entity(tree.EntityId).Despawn()
+			spawnProp(commands, tree.Tree.Model, tree.Transform, PropSettings{Dynamic: true, Density: 300, Slices: 4},
+				physics.LinearVelocity{Vec3f: away.Scale(3 * strength)},
+				physics.AngularVelocity{Vec3f: glm.Vec3f{0, 1, 0}.Cross(away).Scale(0.5 + 1.5*strength)},
+			)
 		}
 
 		for player := range players.Items() {

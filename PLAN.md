@@ -37,7 +37,7 @@ Go module `github.com/oliverbestmann/zombies`, byke (ECS + renderer) and box3d-g
 | `player.go` | first person controller (dynamic capsule on `physics.Mover`), health |
 | `weapons.go` | weapon table, firing, ammo, view model |
 | `projectiles.go` | rockets and grenades |
-| `explosions.go` | damage, physics impulse, point light flash, fireball, camera shake |
+| `explosions.go` | damage, physics impulse, point light flash, fireball, camera shake, knocks trees over |
 | `zombies.go` | spawning in waves, steering, procedural walk animation, attacks |
 | `flyers.go` | flying ghosts that swoop at the player |
 | `gibs.go` | body parts and blood chunks as physics debris, despawn after a while |
