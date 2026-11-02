@@ -4,7 +4,7 @@ go 1.27.2
 
 require (
 	github.com/oliverbestmann/box3d-go v0.2.0
-	github.com/oliverbestmann/byke v0.2.0
+	github.com/oliverbestmann/byke v0.2.1
 	github.com/oliverbestmann/webgpu v1.37.2
 )
 

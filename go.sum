@@ -39,8 +39,8 @@ github.com/klauspost/compress v1.20.3 h1:zWNoFqq/lSuYQRim3dUXlXeA0IqwuZGicdG5ZTf
 github.com/klauspost/compress v1.20.3/go.mod h1:LUdAzn7YLVvxLpc7y3V1m40wESHTgc1422pwwBSKYuI=
 github.com/oliverbestmann/box3d-go v0.2.0 h1:CmRdjcIKNeGbytI9q9CP62WmTGKg/cVLEtZ/yImdV0k=
 github.com/oliverbestmann/box3d-go v0.2.0/go.mod h1:S/VzoGnmwyZFKD3x0SCqKbmjqpqJiLhFZTUjk4v9QUc=
-github.com/oliverbestmann/byke v0.2.0 h1:yMgwe2ksCMCTvk261kR5J6fCWnYAnl+R6ggpcjvoBQs=
-github.com/oliverbestmann/byke v0.2.0/go.mod h1:eciU/2Ycjg4ObuV6IKB1fSt3XOSljiSCcpVu0BknLPE=
+github.com/oliverbestmann/byke v0.2.1 h1:QLdtwxVTXr5ErZE65jS19rNulw3FaSg8oF6rzxJjK0I=
+github.com/oliverbestmann/byke v0.2.1/go.mod h1:eciU/2Ycjg4ObuV6IKB1fSt3XOSljiSCcpVu0BknLPE=
 github.com/oliverbestmann/earcut-go v1.1.1 h1:BQaBS071LHb955DG+3OYq2ttbxz1LC7T79ts5cQDi7g=
 github.com/oliverbestmann/earcut-go v1.1.1/go.mod h1:ilxChwLCGeq6BhhkMmpuh1vEN02KCla3bXentG4Kqp8=
 github.com/oliverbestmann/mikktspace-go v0.0.0-20261021165803-21f42ec57da7 h1:a4mryMgx4ocPzqjLUFvJut3xMF72tNjo97GQdcW3J3w=
