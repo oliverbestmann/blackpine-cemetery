@@ -28,9 +28,9 @@ func slicedHullCollider(mesh *Mesh, slices int) physics.Collider {
 
 // sliceMesh clips the triangles to slices horizontal slabs and returns the points in each slab.
 func sliceMesh(vertices []glm.Vec3f, indices []uint32, slices int) [][]glm.Vec3f {
-	lo, hi := vertices[0][1], vertices[0][1]
+	lo, hi := vertices[0].Y, vertices[0].Y
 	for _, v := range vertices {
-		lo, hi = min(lo, v[1]), max(hi, v[1])
+		lo, hi = min(lo, v.Y), max(hi, v.Y)
 	}
 
 	height := (hi - lo) / float32(slices)
@@ -58,7 +58,7 @@ func clipY(polygon []glm.Vec3f, y float32, side float32) []glm.Vec3f {
 
 	for idx, a := range polygon {
 		b := polygon[(idx+1)%len(polygon)]
-		da, db := (a[1]-y)*side, (b[1]-y)*side
+		da, db := (a.Y-y)*side, (b.Y-y)*side
 
 		if da >= 0 {
 			out = append(out, a)

@@ -54,7 +54,7 @@ func submitScoreSystem(commands *Commands, stats *Stats) {
 	commands.Spawn(
 		Round{},
 		NewTransform(),
-		HudPin{Offset: glm.Vec2f{0, 60}},
+		HudPin{Offset: glm.V2f(0, 60)},
 		AnchorTopCenter,
 		Text{Size: 36, Color: ColorSRGB(1, 0.95, 0.85)},
 		hudFont(),

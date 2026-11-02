@@ -23,8 +23,8 @@ func TestMoverWalksUpStepAndJumps(t *testing.T) {
 	}
 
 	// the floor and a 0.3 m step at x=3
-	spawnBox(glm.Vec3f{0, -0.5, 0}, glm.Vec3f{50, 0.5, 50})
-	spawnBox(glm.Vec3f{8, 0.15, 0}, glm.Vec3f{5, 0.15, 5})
+	spawnBox(glm.V3f(0, -0.5, 0), glm.V3f(50, 0.5, 50))
+	spawnBox(glm.V3f(8, 0.15, 0), glm.V3f(5, 0.15, 5))
 
 	settings := DefaultMoverSettings()
 	settings.PogoRestLength = 0.65
@@ -55,16 +55,16 @@ func TestMoverWalksUpStepAndJumps(t *testing.T) {
 	step(64)
 
 	item, _ := query.Get(moverId)
-	if y := item.Transform.Translation[1]; abs(y-0.9) > 0.05 || !item.Mover.OnGround {
+	if y := item.Transform.Translation.Y; abs(y-0.9) > 0.05 || !item.Mover.OnGround {
 		t.Fatalf("mover should hover at y=0.9 on the ground, is at y=%v, on ground %v", y, item.Mover.OnGround)
 	}
 
 	// walk 2 s along +x and onto the step
-	item.Mover.Direction = glm.Vec3f{1, 0, 0}
+	item.Mover.Direction = glm.V3f(1, 0, 0)
 	step(128)
 
 	item, _ = query.Get(moverId)
-	if pos := item.Transform.Translation; pos[0] < 8 || abs(pos[1]-1.2) > 0.1 {
+	if pos := item.Transform.Translation; pos.X < 8 || abs(pos.Y-1.2) > 0.1 {
 		t.Fatalf("mover should have walked onto the step at y=1.2, is at %v", pos)
 	}
 
@@ -75,7 +75,7 @@ func TestMoverWalksUpStepAndJumps(t *testing.T) {
 	for range 64 {
 		step(1)
 		item, _ = query.Get(moverId)
-		top = max(top, item.Transform.Translation[1])
+		top = max(top, item.Transform.Translation.Y)
 	}
 
 	// 7 m/s at 1.5 g reaches about 1.6 m

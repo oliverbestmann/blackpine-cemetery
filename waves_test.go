@@ -51,7 +51,7 @@ func TestSpawnPositionAwayFromPlayer(t *testing.T) {
 			t.Fatalf("zombie spawned at %v, too close to the player", pos)
 		}
 
-		if abs32(pos[0]) > arenaHalfSize || abs32(pos[2]) > arenaHalfSize {
+		if abs32(pos.X) > arenaHalfSize || abs32(pos.Z) > arenaHalfSize {
 			t.Fatalf("zombie spawned outside the arena at %v", pos)
 		}
 	}

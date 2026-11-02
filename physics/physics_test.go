@@ -36,8 +36,8 @@ func newTestApp(t *testing.T) *byke.App {
 }
 
 func TestQuatConversion(t *testing.T) {
-	q := glm.QuatFromAxisAngle(glm.Vec3f{1, 2, 3}.Normalize(), 1.2)
-	v := glm.Vec3f{0.3, -1, 2}
+	q := glm.QuatFromAxisAngle(glm.V3f(1, 2, 3).Normalize(), 1.2)
+	v := glm.V3f(0.3, -1, 2)
 
 	got := toGlmVec(b3.RotateVector(toB3Quat(q), toB3Vec(v)))
 	if want := q.Transform(v); !near(got, want) {
@@ -52,7 +52,7 @@ func TestQuatConversion(t *testing.T) {
 func TestDecompose(t *testing.T) {
 	transform := byke2d.NewTransform().
 		WithTranslationXYZ(1, 2, 3).
-		WithRotation(glm.QuatFromAxisAngle(glm.Vec3f{0, 1, 1}.Normalize(), 2.5)).
+		WithRotation(glm.QuatFromAxisAngle(glm.V3f(0, 1, 1).Normalize(), 2.5)).
 		WithScaleXYZ(2, 3, 0.5)
 
 	translation, rotation, scale := decompose(transform.Affine3())
@@ -61,7 +61,7 @@ func TestDecompose(t *testing.T) {
 		t.Fatalf("got %v %v", translation, scale)
 	}
 
-	v := glm.Vec3f{1, -2, 0.5}
+	v := glm.V3f(1, -2, 0.5)
 	if !near(rotation.Transform(v), transform.Rotation.Transform(v)) {
 		t.Fatalf("rotation differs")
 	}
@@ -79,7 +79,7 @@ func TestBoxFallsOntoTriMesh(t *testing.T) {
 		byke2d.GlobalTransform{Affine: ground.Affine3()},
 		RigidBody{Type: Static},
 		TriMeshCollider(
-			[]glm.Vec3f{{-10, 0, -10}, {-10, 0, 10}, {10, 0, 10}, {10, 0, -10}},
+			[]glm.Vec3f{glm.V3f(-10, 0, -10), glm.V3f(-10, 0, 10), glm.V3f(10, 0, 10), glm.V3f(10, 0, -10)},
 			[]uint32{0, 1, 2, 0, 2, 3},
 		),
 	})
@@ -92,7 +92,7 @@ func TestBoxFallsOntoTriMesh(t *testing.T) {
 		box,
 		byke2d.GlobalTransform{Affine: box.Affine3()},
 		RigidBody{Type: Dynamic},
-		CuboidCollider(glm.Vec3f{0.5, 0.5, 0.5}),
+		CuboidCollider(glm.V3f(0.5, 0.5, 0.5)),
 	})
 
 	for range 5 * 64 {
@@ -111,7 +111,7 @@ func TestBoxFallsOntoTriMesh(t *testing.T) {
 		t.Fatal("box not found")
 	}
 
-	if y := item.Transform.Translation[1]; math.Abs(float64(y-1.5)) > 0.02 {
+	if y := item.Transform.Translation.Y; math.Abs(float64(y-1.5)) > 0.02 {
 		t.Fatalf("box should rest at y=1.5, is at %v", y)
 	}
 
@@ -120,37 +120,37 @@ func TestBoxFallsOntoTriMesh(t *testing.T) {
 	}
 
 	// rotation around y must survive the round trip through box3d
-	v := glm.Vec3f{1, 0, 0}
+	v := glm.V3f(1, 0, 0)
 	if item.Transform.Rotation.Transform(v).Sub(box.Rotation.Transform(v)).Length() > 0.01 {
 		t.Fatalf("rotation changed")
 	}
 
 	physicsWorld, _ := world.ResourceOf[PhysicsWorld]()
 
-	hit, ok := physicsWorld.CastRay(glm.Vec3f{0, 10, 0}, glm.Vec3f{0, -1, 0}, 20)
+	hit, ok := physicsWorld.CastRay(glm.V3f(0, 10, 0), glm.V3f(0, -1, 0), 20)
 	if !ok || hit.Entity != boxId || !hit.IsDynamic() || math.Abs(float64(hit.Distance-8)) > 0.02 {
 		t.Fatalf("expected to hit the box top at distance 8, got %+v (ok=%v)", hit, ok)
 	}
 
 	mask := ^uint64(0)
-	if !physicsWorld.OverlapsCapsule(glm.Vec3f{0, 1.4, 0}, glm.Vec3f{0, 2.5, 0}, 0.2, mask) {
+	if !physicsWorld.OverlapsCapsule(glm.V3f(0, 1.4, 0), glm.V3f(0, 2.5, 0), 0.2, mask) {
 		t.Fatal("capsule through the box should overlap")
 	}
 
-	if physicsWorld.OverlapsCapsule(glm.Vec3f{3, 1.4, 0}, glm.Vec3f{3, 2.5, 0}, 0.2, mask) {
+	if physicsWorld.OverlapsCapsule(glm.V3f(3, 1.4, 0), glm.V3f(3, 2.5, 0), 0.2, mask) {
 		t.Fatal("capsule next to the box should not overlap")
 	}
 
-	if !physicsWorld.OverlapsCapsule(glm.Vec3f{3, 0.5, 0}, glm.Vec3f{3, 1.5, 0}, 0.2, mask) {
+	if !physicsWorld.OverlapsCapsule(glm.V3f(3, 0.5, 0), glm.V3f(3, 1.5, 0), 0.2, mask) {
 		t.Fatal("capsule through the ground mesh should overlap")
 	}
 
-	hit.ApplyImpulse(glm.Vec3f{2 * hit.Mass(), 0, 0})
+	hit.ApplyImpulse(glm.V3f(2*hit.Mass(), 0, 0))
 	world.RunSchedule(byke.FixedUpdate)
 	world.RunSchedule(byke.FixedPostUpdate)
 
 	item, _ = query.Get(boxId)
-	if item.LinearVelocity.Vec3f[0] < 1 {
+	if item.LinearVelocity.Vec3f.X < 1 {
 		t.Fatalf("impulse should push the box along +x, velocity is %v", item.LinearVelocity.Vec3f)
 	}
 }
@@ -167,7 +167,7 @@ func TestSensorOverlaps(t *testing.T) {
 		byke2d.GlobalTransform{Affine: sensor.Affine3()},
 		RigidBody{Type: Static},
 		Sensor{},
-		CuboidCollider(glm.Vec3f{2, 1, 2}),
+		CuboidCollider(glm.V3f(2, 1, 2)),
 	})
 
 	floor := byke2d.NewTransform().WithTranslationXYZ(0, -0.5, 0)
@@ -175,7 +175,7 @@ func TestSensorOverlaps(t *testing.T) {
 		floor,
 		byke2d.GlobalTransform{Affine: floor.Affine3()},
 		RigidBody{Type: Static},
-		CuboidCollider(glm.Vec3f{10, 0.5, 10}),
+		CuboidCollider(glm.V3f(10, 0.5, 10)),
 	})
 
 	box := byke2d.NewTransform().WithTranslationXYZ(0, 5, 0)
@@ -183,7 +183,7 @@ func TestSensorOverlaps(t *testing.T) {
 		box,
 		byke2d.GlobalTransform{Affine: box.Affine3()},
 		RigidBody{Type: Dynamic},
-		CuboidCollider(glm.Vec3f{0.5, 0.5, 0.5}),
+		CuboidCollider(glm.V3f(0.5, 0.5, 0.5)),
 	})
 
 	query := world.Query[struct{ Overlaps SensorOverlaps }]()
@@ -218,7 +218,7 @@ func TestCylinderAndHullColliders(t *testing.T) {
 		floor,
 		byke2d.GlobalTransform{Affine: floor.Affine3()},
 		RigidBody{Type: Static},
-		CuboidCollider(glm.Vec3f{10, 0.5, 10}),
+		CuboidCollider(glm.V3f(10, 0.5, 10)),
 	})
 
 	// cylinder with its origin at the bottom, like the props in the scene
@@ -227,7 +227,7 @@ func TestCylinderAndHullColliders(t *testing.T) {
 		cylinder,
 		byke2d.GlobalTransform{Affine: cylinder.Affine3()},
 		RigidBody{Type: Dynamic},
-		CylinderCollider(0.3, 0.8).WithOffset(glm.Vec3f{0, 0.4, 0}),
+		CylinderCollider(0.3, 0.8).WithOffset(glm.V3f(0, 0.4, 0)),
 	})
 
 	// more points on a sphere than a hull can have vertices
@@ -236,7 +236,7 @@ func TestCylinderAndHullColliders(t *testing.T) {
 		y := 1 - 2*(float32(idx)+0.5)/300
 		r := float32(math.Sqrt(float64(1 - y*y)))
 		angle := float64(idx) * 2.39996
-		points = append(points, glm.Vec3f{r * float32(math.Cos(angle)), y, r * float32(math.Sin(angle))}.Scale(0.5))
+		points = append(points, glm.V3f(r*float32(math.Cos(angle)), y, r*float32(math.Sin(angle))).Scale(0.5))
 	}
 
 	ball := byke2d.NewTransform().WithTranslationXYZ(5, 2, 0)
@@ -256,21 +256,21 @@ func TestCylinderAndHullColliders(t *testing.T) {
 	query := world.Query[struct{ Transform byke2d.Transform }]()
 
 	item, _ := query.Get(cylinderId)
-	if y := item.Transform.Translation[1]; math.Abs(float64(y)) > 0.02 {
+	if y := item.Transform.Translation.Y; math.Abs(float64(y)) > 0.02 {
 		t.Fatalf("cylinder bottom should rest on the floor, is at y=%v", y)
 	}
 
 	// round: a diagonal ray hits at the radius, not at the corner of a box
 	physicsWorld, _ := world.ResourceOf[PhysicsWorld]()
-	diagonal := glm.Vec3f{1, 0, 1}.Normalize()
-	hit, ok := physicsWorld.CastRay(diagonal.Scale(2).Add(glm.Vec3f{0, 0.4, 0}), diagonal.Scale(-1), 2)
+	diagonal := glm.V3f(1, 0, 1).Normalize()
+	hit, ok := physicsWorld.CastRay(diagonal.Scale(2).Add(glm.V3f(0, 0.4, 0)), diagonal.Scale(-1), 2)
 	if !ok || hit.Entity != cylinderId || math.Abs(float64(hit.Distance-1.7)) > 0.02 {
 		t.Fatalf("expected to hit the cylinder side at distance 1.7, got %+v (ok=%v)", hit, ok)
 	}
 
 	// the hull has at most maxHullVertices vertices, its faces are a bit inside the sphere
 	item, _ = query.Get(ballId)
-	if y := item.Transform.Translation[1]; math.Abs(float64(y-0.5)) > 0.06 {
+	if y := item.Transform.Translation.Y; math.Abs(float64(y-0.5)) > 0.06 {
 		t.Fatalf("hull ball should rest at y=0.5, is at y=%v", y)
 	}
 }

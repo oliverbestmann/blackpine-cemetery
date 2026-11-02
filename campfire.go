@@ -16,7 +16,7 @@ var fireShaderCode string
 var fireShader = &ShaderDef{Label: "fire", Source: fireShaderCode, FragmentEntry: "fire"}
 
 // campCenter is the survivor camp next to the road, where the player held out so far.
-var campCenter = glm.Vec3f{17, 0, 27}
+var campCenter = glm.V3f(17, 0, 27)
 
 // FireSprite is a flame sprite that turns to the camera around the vertical axis.
 type FireSprite struct {
@@ -46,7 +46,7 @@ func spawnCamp(commands *Commands, models *Models, assets *GameAssets, rng *rand
 			scale = scaleSurvival
 		}
 
-		transform := TransformFromXYZ(campCenter[0]+x, 0, campCenter[2]+z).WithRotation(glm.RotationYQuat(yaw)).WithScaleXYZ(scale, scale, scale)
+		transform := TransformFromXYZ(campCenter.X+x, 0, campCenter.Z+z).WithRotation(glm.RotationYQuat(yaw)).WithScaleXYZ(scale, scale, scale)
 		spawnProp(commands, models.Get(name), transform, settings)
 	}
 
@@ -74,7 +74,7 @@ func spawnCamp(commands *Commands, models *Models, assets *GameAssets, rng *rand
 	at("survival/campfire-pit", 0, 0, 0, PropSettings{})
 	at("survival/campfire-stand", 0, 0, glm.DegToRad(20), PropSettings{})
 
-	spawnFire(commands, assets, campCenter.Add(glm.Vec3f{0, 0.15, 0}), 1.6, 2.6, 45000, rng.Float32())
+	spawnFire(commands, assets, campCenter.Add(glm.V3f(0, 0.15, 0)), 1.6, 2.6, 45000, rng.Float32())
 }
 
 // spawnFire spawns a flame sprite with a flickering point light. phase in [0, 1] shifts the flicker.
@@ -83,7 +83,7 @@ func spawnFire(commands *Commands, assets *GameAssets, pos glm.Vec3f, width, hei
 		Round{},
 		TransformFromXYZ(pos.XYZ()),
 		// the shader does not read the texture, the color alpha shifts the noise
-		Sprite{Texture: assets.WhiteTexture, CustomSize: Some(glm.Vec2f{width, height}), Color: ColorLinearRGBA(1, 1, 1, max(0.01, phase))},
+		Sprite{Texture: assets.WhiteTexture, CustomSize: Some(glm.V2f(width, height)), Color: ColorLinearRGBA(1, 1, 1, max(0.01, phase))},
 		AnchorBottomCenter,
 		CustomShader{Shader: fireShader},
 		FireSprite{},
@@ -91,7 +91,7 @@ func spawnFire(commands *Commands, assets *GameAssets, pos glm.Vec3f, width, hei
 
 	commands.Spawn(
 		Round{},
-		TransformFromXYZ(pos.Add(glm.Vec3f{0, height * 0.5, 0}).XYZ()),
+		TransformFromXYZ(pos.Add(glm.V3f(0, height*0.5, 0)).XYZ()),
 		PointLight{Color: ColorSRGB(1, 0.55, 0.2), Intensity: intensity, Range: 16},
 		FireLight{Intensity: intensity, Phase: phase * 100},
 	)

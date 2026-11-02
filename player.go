@@ -82,7 +82,7 @@ func playerPlugin(app *App) {
 	app.AddSystems(PostUpdate, System(cameraFollowSystem).InSet(beforeTransforms))
 }
 
-var playerStart = glm.Vec3f{0, playerHalfHeight + 0.05, 10}
+var playerStart = glm.V3f(0, playerHalfHeight+0.05, 10)
 
 func spawnPlayerSystem(commands *Commands, assets *GameAssets, models *Models) {
 	commands.Spawn(
@@ -112,7 +112,7 @@ func spawnPlayerSystem(commands *Commands, assets *GameAssets, models *Models) {
 		},
 		microphone,
 		PerspectiveProjection{Fov: glm.DegToRad(80), Near: 0.05, Far: 1000},
-		TransformFromXYZ(playerStart.Add(glm.Vec3f{0, playerEyeOffset, 0}).XYZ()),
+		TransformFromXYZ(playerStart.Add(glm.V3f(0, playerEyeOffset, 0)).XYZ()),
 	).Id()
 
 	// draws only the view models on top of the world, so they never clip into walls
@@ -170,8 +170,8 @@ func lookSystem(
 		player.lastCursor = new(cursor.Vec2f)
 
 		if cursor.Grabbed {
-			player.Yaw -= glm.Rad(delta[0] * mouseSensitivity)
-			player.Pitch -= glm.Rad(delta[1] * mouseSensitivity)
+			player.Yaw -= glm.Rad(delta.X * mouseSensitivity)
+			player.Pitch -= glm.Rad(delta.Y * mouseSensitivity)
 		}
 
 		turn := glm.Rad(2 * vt.DeltaSecs)
@@ -197,16 +197,16 @@ func moveInput(keys Keys) glm.Vec3f {
 	var move glm.Vec3f
 
 	if keys.IsPressed(vyn.KeyW) {
-		move[2] -= 1
+		move.Z -= 1
 	}
 	if keys.IsPressed(vyn.KeyS) {
-		move[2] += 1
+		move.Z += 1
 	}
 	if keys.IsPressed(vyn.KeyA) {
-		move[0] -= 1
+		move.X -= 1
 	}
 	if keys.IsPressed(vyn.KeyD) {
-		move[0] += 1
+		move.X += 1
 	}
 
 	if move.Length() > 0 {
@@ -289,7 +289,7 @@ func cameraFollowSystem(
 	alpha = max(0, min(1, alpha))
 
 	position := player.previous.Add(player.current.Sub(player.previous).Scale(alpha))
-	position = position.Add(glm.Vec3f{0, playerEyeOffset, 0})
+	position = position.Add(glm.V3f(0, playerEyeOffset, 0))
 
 	// shake and recoil
 	camera.Camera.Shake *= float32(math.Exp(float64(-6 * vt.DeltaSecs)))
@@ -314,7 +314,7 @@ func cameraFollowSystem(
 		fall *= fall
 
 		position = player.deathEye
-		position[1] += (0.3 - position[1]) * fall
+		position.Y += (0.3 - position.Y) * fall
 		rotation = glm.RotationYQuat(player.Yaw).
 			Mul(glm.RotationXQuat(player.Pitch * glm.Rad(1-fall))).
 			Mul(glm.RotationZQuat(glm.Rad(1.2 * fall)))
@@ -326,5 +326,5 @@ func cameraFollowSystem(
 
 // forward returns the direction the camera looks at.
 func cameraForward(transform Transform) glm.Vec3f {
-	return transform.Rotation.Transform(glm.Vec3f{0, 0, -1})
+	return transform.Rotation.Transform(glm.V3f(0, 0, -1))
 }

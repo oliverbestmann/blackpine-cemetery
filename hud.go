@@ -98,7 +98,7 @@ func spawnHudSystem(commands *Commands, assets *GameAssets) {
 		Camera2d,
 		ClearColor{Color: ColorSRGBA(0, 0, 0, 0)},
 		OrthographicProjection{
-			ViewportOrigin: glm.Vec2f{0.5, 0.5},
+			ViewportOrigin: glm.V2f(0.5, 0.5),
 			ScalingMode:    ScalingModeAutoMin{MinWidth: hudUnits, MinHeight: hudUnits},
 		},
 		RenderLayersOf(hudLayer),
@@ -107,7 +107,7 @@ func spawnHudSystem(commands *Commands, assets *GameAssets) {
 	commands.Spawn(
 		Round{},
 		TransformFromXYZ(0, 0, 0.5),
-		Sprite{Texture: assets.CrosshairTexture, CustomSize: Some(glm.Vec2f{24, 24})},
+		Sprite{Texture: assets.CrosshairTexture, CustomSize: Some(glm.V2f(24, 24))},
 		RenderLayersOf(hudLayer),
 		Visibility{},
 		Crosshair{},
@@ -117,7 +117,7 @@ func spawnHudSystem(commands *Commands, assets *GameAssets) {
 	commands.Spawn(
 		Round{},
 		TransformFromXYZ(0, 0, -0.1),
-		Sprite{Texture: assets.WhiteTexture, CustomSize: Some(glm.Vec2f{4000, 4000}), Color: overlayColor(0, playerMaxHealth)},
+		Sprite{Texture: assets.WhiteTexture, CustomSize: Some(glm.V2f(4000, 4000)), Color: overlayColor(0, playerMaxHealth)},
 		CustomShader{Shader: overlayShader},
 		RenderLayersOf(hudLayer),
 		DamageFlash{},
@@ -136,21 +136,21 @@ func spawnHudSystem(commands *Commands, assets *GameAssets) {
 		)
 	}
 
-	text(hudHealth, HudPin{Screen: glm.Vec2f{-1, -1}, Offset: glm.Vec2f{30, 30}}, AnchorBottomLeft, 48)
-	text(hudAmmo, HudPin{Screen: glm.Vec2f{1, -1}, Offset: glm.Vec2f{-30, 30}}, AnchorBottomRight, 48)
-	text(hudScore, HudPin{Screen: glm.Vec2f{1, 1}, Offset: glm.Vec2f{-30, -30}}, AnchorTopRight, 36)
-	text(hudWave, HudPin{Screen: glm.Vec2f{-1, 1}, Offset: glm.Vec2f{30, -30}}, AnchorTopLeft, 36)
-	text(hudMessage, HudPin{Screen: glm.Vec2f{0, 0}, Offset: glm.Vec2f{0, 180}}, AnchorCenter, 48)
+	text(hudHealth, HudPin{Screen: glm.V2f(-1, -1), Offset: glm.V2f(30, 30)}, AnchorBottomLeft, 48)
+	text(hudAmmo, HudPin{Screen: glm.V2f(1, -1), Offset: glm.V2f(-30, 30)}, AnchorBottomRight, 48)
+	text(hudScore, HudPin{Screen: glm.V2f(1, 1), Offset: glm.V2f(-30, -30)}, AnchorTopRight, 36)
+	text(hudWave, HudPin{Screen: glm.V2f(-1, 1), Offset: glm.V2f(30, -30)}, AnchorTopLeft, 36)
+	text(hudMessage, HudPin{Screen: glm.V2f(0, 0), Offset: glm.V2f(0, 180)}, AnchorCenter, 48)
 
-	text(hudBoss, HudPin{Screen: glm.Vec2f{0, 1}, Offset: glm.Vec2f{0, -110}}, AnchorCenter, 40)
+	text(hudBoss, HudPin{Screen: glm.V2f(0, 1), Offset: glm.V2f(0, -110)}, AnchorCenter, 40)
 
 	// enemies left in the wave, a skull and a number at the top
-	text(hudEnemies, HudPin{Screen: glm.Vec2f{0, 1}, Offset: glm.Vec2f{6, -55}}, AnchorCenterLeft, 44)
+	text(hudEnemies, HudPin{Screen: glm.V2f(0, 1), Offset: glm.V2f(6, -55)}, AnchorCenterLeft, 44)
 	commands.Spawn(
 		Round{},
 		NewTransform(),
-		HudPin{Screen: glm.Vec2f{0, 1}, Offset: glm.Vec2f{-28, -55}},
-		Sprite{Texture: assets.SkullTexture, CustomSize: Some(glm.Vec2f{52, 52}), Color: ColorSRGB(1, 0.95, 0.85)},
+		HudPin{Screen: glm.V2f(0, 1), Offset: glm.V2f(-28, -55)},
+		Sprite{Texture: assets.SkullTexture, CustomSize: Some(glm.V2f(52, 52)), Color: ColorSRGB(1, 0.95, 0.85)},
 		RenderLayersOf(hudLayer),
 	)
 
@@ -158,7 +158,7 @@ func spawnHudSystem(commands *Commands, assets *GameAssets) {
 		commands.Spawn(
 			Round{},
 			NewTransform(),
-			Sprite{Texture: assets.ArrowTexture, CustomSize: Some(glm.Vec2f{32, 32}), Color: ColorSRGBA(1, 0.15, 0.1, 0)},
+			Sprite{Texture: assets.ArrowTexture, CustomSize: Some(glm.V2f(32, 32)), Color: ColorSRGBA(1, 0.15, 0.1, 0)},
 			RenderLayersOf(hudLayer),
 			EnemyMarker{},
 		)
@@ -217,7 +217,7 @@ func enemyMarkerSystem(
 		targets = targets[1:]
 
 		marker.Sprite.Color = ColorSRGBA(1, 0.15, 0.1, 0.9)
-		marker.Transform.Translation = glm.Vec3f{pos[0], pos[1], 0.4}
+		marker.Transform.Translation = glm.V3f(pos.X, pos.Y, 0.4)
 		marker.Transform.Rotation = glm.RotationZQuat(-angle)
 	}
 }
@@ -228,30 +228,30 @@ func enemyMarkerSystem(
 func markerPlacement(camera, worldToClip glm.Mat4f, half glm.Vec2f, target glm.Vec3f) (glm.Vec2f, glm.Rad) {
 	center := camera.Translation()
 	dir := target.Sub(center)
-	dir[1] = 0
+	dir.Y = 0
 	dir = dir.Normalize()
 
 	toHud := func(p glm.Vec3f) (glm.Vec2f, bool) {
-		clip := worldToClip.Transform(glm.Vec4f{p[0], 0.02, p[2], 1})
-		if clip[3] <= 0 {
+		clip := worldToClip.Transform(glm.V4f(p.X, 0.02, p.Z, 1))
+		if clip.W <= 0 {
 			return glm.Vec2f{}, false
 		}
 
-		ndc := glm.Vec2f{clip[0] / clip[3], clip[1] / clip[3]}
-		return ndc.Mul(half), max(math.Abs(float64(ndc[0])), math.Abs(float64(ndc[1]))) <= 0.95
+		ndc := glm.V2f(clip.X/clip.W, clip.Y/clip.W)
+		return ndc.Mul(half), max(math.Abs(float64(ndc.X)), math.Abs(float64(ndc.Y))) <= 0.95
 	}
 
 	from, okFrom := toHud(center.Add(dir.Scale(enemyMarkerDistance)))
 	to, okTo := toHud(center.Add(dir.Scale(enemyMarkerDistance + 0.5)))
 	if okFrom && okTo {
 		d := to.Sub(from)
-		return from, glm.Rad(math.Atan2(float64(d[0]), float64(d[1])))
+		return from, glm.Rad(math.Atan2(float64(d.X), float64(d.Y)))
 	}
 
 	// out of view: at the bottom, ahead in the middle and behind at the edges
 	angle := markerAngle(camera, target)
-	x := float32(angle) / math.Pi * (half[0] - 60)
-	return glm.Vec2f{x, -half[1] + 60}, angle
+	x := float32(angle) / math.Pi * (half.X - 60)
+	return glm.V2f(x, -half.Y+60), angle
 }
 
 // markerAngle is the bearing of target seen from the camera on the ground plane,
@@ -262,18 +262,18 @@ func markerAngle(camera glm.Mat4f, target glm.Vec3f) glm.Rad {
 	right, back := camera[0], camera[2]
 
 	// project onto the ground, so looking up or down does not matter
-	x := d[0]*right[0] + d[2]*right[2]
-	y := -(d[0]*back[0] + d[2]*back[2])
+	x := d.X*right[0] + d.Z*right[2]
+	y := -(d.X*back[0] + d.Z*back[2])
 	return glm.Rad(math.Atan2(float64(x), float64(y)))
 }
 
 // hudSize returns the visible hud area in hud units.
 func hudSize(screen ScreenSize) glm.Vec2f {
-	if screen.Vec2f[0] <= 0 || screen.Vec2f[1] <= 0 {
-		return glm.Vec2f{hudUnits, hudUnits}
+	if screen.Vec2f.X <= 0 || screen.Vec2f.Y <= 0 {
+		return glm.V2f(hudUnits, hudUnits)
 	}
 
-	scale := hudUnits / min(screen.Vec2f[0], screen.Vec2f[1])
+	scale := hudUnits / min(screen.Vec2f.X, screen.Vec2f.Y)
 	return screen.Vec2f.Scale(scale)
 }
 
@@ -319,8 +319,8 @@ func hudPinSystem(screen ScreenSize, pins Query[struct {
 
 	for item := range pins.Items() {
 		pos := item.Pin.Screen.Mul(half).Add(item.Pin.Offset)
-		item.Transform.Translation[0] = pos[0]
-		item.Transform.Translation[1] = pos[1]
+		item.Transform.Translation.X = pos.X
+		item.Transform.Translation.Y = pos.Y
 	}
 }
 

@@ -103,7 +103,7 @@ func (l loadingSounds) await() Sounds {
 const spatialScale = 0.15
 
 // microphone hears the spatial sounds, it sits on the camera.
-var microphone = Microphone{LeftEarOffset: glm.Vec3f{-0.1, 0, 0}, RightEarOffset: glm.Vec3f{0.1, 0, 0}}
+var microphone = Microphone{LeftEarOffset: glm.V3f(-0.1, 0, 0), RightEarOffset: glm.V3f(0.1, 0, 0)}
 
 // SoundBudget limits the sounds started per frame, a crowd dying at once would be a wall of noise.
 type SoundBudget struct {

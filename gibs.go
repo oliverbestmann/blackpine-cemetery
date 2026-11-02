@@ -55,7 +55,7 @@ func spawnGibs(commands *Commands, rng *GameRng, model *Model, transform Transfo
 		half := part.Max.Sub(part.Min).Scale(0.5)
 		center := part.Min.Add(part.Max).Scale(0.5)
 
-		v := velocity.Add(randomInSphere(rng.Rand).Scale(spread)).Add(glm.Vec3f{0, spread * 0.6, 0})
+		v := velocity.Add(randomInSphere(rng.Rand).Scale(spread)).Add(glm.V3f(0, spread*0.6, 0))
 		spin := randomInSphere(rng.Rand).Scale(8 + spread)
 
 		commands.Spawn(
@@ -76,15 +76,14 @@ func spawnGibs(commands *Commands, rng *GameRng, model *Model, transform Transfo
 // decomposeAffine splits a matrix without shear into translation, rotation and scale.
 func decomposeAffine(m glm.Mat4f) (glm.Vec3f, glm.Quat, glm.Vec3f) {
 	var rot glm.Mat3f
-	var scale glm.Vec3f
-
+	var lengths [3]float32
 	for col := range 3 {
-		axis := glm.Vec3f{m[col][0], m[col][1], m[col][2]}
-		scale[col] = axis.Length()
-		rot[col] = axis.Scale(1 / scale[col])
+		axis := glm.V3f(m[col][0], m[col][1], m[col][2])
+		lengths[col] = axis.Length()
+		rot[col] = axis.Scale(1 / lengths[col]).Array()
 	}
 
-	return m.Translation(), glm.QuatFromMat3(rot), scale
+	return m.Translation(), glm.QuatFromMat3(rot), glm.V3f(lengths[0], lengths[1], lengths[2])
 }
 
 // lifetimeFor shortens a lifetime when there are more than max things alive.
@@ -115,7 +114,7 @@ func gibAgeSystem(vt VirtualTime, commands *Commands, gibs Query[struct {
 func spawnBlood(commands *Commands, assets *GameAssets, rng *GameRng, point, velocity glm.Vec3f, count int) {
 	for range count {
 		size := 0.06 + rng.Float32()*0.1
-		v := velocity.Add(randomInSphere(rng.Rand).Scale(4)).Add(glm.Vec3f{0, 2, 0})
+		v := velocity.Add(randomInSphere(rng.Rand).Scale(4)).Add(glm.V3f(0, 2, 0))
 
 		commands.Spawn(
 			Round{},
@@ -151,20 +150,20 @@ func bloodSystem(vt VirtualTime, commands *Commands, drops Query[struct {
 			// shrink away at the end of the lifetime
 			if left := lifetime - b.Age; left < 2 {
 				s := b.Size * 4 * left / 2
-				item.Transform.Scale = glm.Vec3f{s, 0.01, s}
+				item.Transform.Scale = glm.V3f(s, 0.01, s)
 			}
 
 			continue
 		}
 
-		b.Velocity[1] -= 9.81 * dt
+		b.Velocity.Y -= 9.81 * dt
 		item.Transform.Translation = item.Transform.Translation.Add(b.Velocity.Scale(dt))
 
-		if item.Transform.Translation[1] < 0.01 {
+		if item.Transform.Translation.Y < 0.01 {
 			// a flat splat on the ground, a bit above it to avoid z fighting
 			b.Landed = true
-			item.Transform.Translation[1] = 0.005 + rand.Float32()*0.01
-			item.Transform.Scale = glm.Vec3f{b.Size * 4, 0.01, b.Size * 4}
+			item.Transform.Translation.Y = 0.005 + rand.Float32()*0.01
+			item.Transform.Scale = glm.V3f(b.Size*4, 0.01, b.Size*4)
 			item.Transform.Rotation = glm.RotationYQuat(glm.Rad(rand.Float32() * 3))
 		}
 	}

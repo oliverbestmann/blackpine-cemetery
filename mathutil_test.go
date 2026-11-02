@@ -8,8 +8,8 @@ import (
 )
 
 func TestYawTowards(t *testing.T) {
-	for _, dir := range []glm.Vec3f{{1, 0, 0}, {0, 0, -1}, {-1, 0, 1}} {
-		got := glm.RotationYQuat(yawTowards(dir)).Transform(glm.Vec3f{0, 0, 1})
+	for _, dir := range []glm.Vec3f{glm.V3f(1, 0, 0), glm.V3f(0, 0, -1), glm.V3f(-1, 0, 1)} {
+		got := glm.RotationYQuat(yawTowards(dir)).Transform(glm.V3f(0, 0, 1))
 		if got.Sub(dir.Normalize()).Length() > 1e-5 {
 			t.Errorf("yaw towards %v turns +z to %v", dir, got)
 		}

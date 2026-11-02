@@ -172,7 +172,7 @@ func scoreSystem(vt VirtualTime, commands *Commands, stats *Stats, killed *Messa
 			// invisible until scorePopupSystem placed it
 			Text{Text: text, Size: float32(32 + 4*min(multi, 5)), Color: ColorSRGBA(1, 0.8, 0.2, 0)},
 			hudFont(),
-			ScorePopup{World: kill.Position.Add(glm.Vec3f{0, 1.5, 0})},
+			ScorePopup{World: kill.Position.Add(glm.V3f(0, 1.5, 0))},
 			RenderLayersOf(hudLayer),
 		)
 	}
@@ -224,16 +224,16 @@ func scorePopupSystem(
 
 		// rises two meters
 		p := popup.Popup.World
-		clip := worldToClip.Transform(glm.Vec4f{p[0], p[1] + 2*t, p[2], 1})
+		clip := worldToClip.Transform(glm.V4f(p.X, p.Y+2*t, p.Z, 1))
 
 		alpha := 1 - t*t
-		if clip[3] <= 0 {
+		if clip.W <= 0 {
 			// behind the camera
 			alpha = 0
 		}
 
-		pos := glm.Vec2f{clip[0] / clip[3], clip[1] / clip[3]}.Mul(half)
-		popup.Transform.Translation = glm.Vec3f{pos[0], pos[1], 0.3}
+		pos := glm.V2f(clip.X/clip.W, clip.Y/clip.W).Mul(half)
+		popup.Transform.Translation = glm.V3f(pos.X, pos.Y, 0.3)
 		popup.Text.Color = ColorSRGBA(1, 0.8, 0.2, alpha)
 	}
 }

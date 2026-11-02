@@ -52,13 +52,13 @@ func particleSystem(vt VirtualTime, commands *Commands, particles Query[struct {
 			continue
 		}
 
-		p.Velocity[1] -= p.Gravity * dt
+		p.Velocity.Y -= p.Gravity * dt
 		p.Velocity = p.Velocity.Scale(decay(p.Drag, dt))
 
 		pos := item.Transform.Translation.Add(p.Velocity.Scale(dt))
-		if p.Bounce && pos[1] < 0.05 {
-			pos[1] = 0.05
-			p.Velocity = glm.Vec3f{p.Velocity[0] * 0.5, -p.Velocity[1] * 0.3, p.Velocity[2] * 0.5}
+		if p.Bounce && pos.Y < 0.05 {
+			pos.Y = 0.05
+			p.Velocity = glm.V3f(p.Velocity.X*0.5, -p.Velocity.Y*0.3, p.Velocity.Z*0.5)
 		}
 
 		item.Transform.Translation = pos

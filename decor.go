@@ -37,20 +37,20 @@ func spawnFlame(commands *Commands, assets *GameAssets, pos glm.Vec3f, size, int
 // lightposts along the path from the start.
 func spawnGraveyardLights(commands *Commands, models *Models, assets *GameAssets) {
 	s := float32(scaleGraveyard)
-	front := graveyardCenter[2] + graveyardHalfDepth
+	front := graveyardCenter.Z + graveyardHalfDepth
 
 	basket := models.Get("graveyard/fire-basket")
 	for _, x := range []float32{-5.5, 5.5} {
-		pos := glm.Vec3f{x, 0, front + 1.5}
+		pos := glm.V3f(x, 0, front+1.5)
 		spawnProp(commands, basket, TransformFromXYZ(pos.XYZ()).WithScaleXYZ(s*1.5, s*1.5, s*1.5), PropSettings{})
-		spawnFlame(commands, assets, pos.Add(glm.Vec3f{0, basket.Max[1] * s * 1.5, 0}), 0.45, 60000, 16)
+		spawnFlame(commands, assets, pos.Add(glm.V3f(0, basket.Max.Y*s*1.5, 0)), 0.45, 60000, 16)
 	}
 
 	lantern := models.Get("graveyard/lantern-candle")
 	// at most 3-4 static point lights, every pixel loops over all of them.
 	// only the lantern at the big crypt lights the ground.
 	for _, x := range []float32{-18 + 3, 0 + 4, 18 + 3} {
-		pos := glm.Vec3f{x, 0, graveyardCenter[2] - graveyardHalfDepth + 2}
+		pos := glm.V3f(x, 0, graveyardCenter.Z-graveyardHalfDepth+2)
 		spawnProp(commands, lantern, TransformFromXYZ(pos.XYZ()).WithScaleXYZ(s, s, s), PropSettings{})
 
 		intensity := float32(0)
@@ -58,19 +58,19 @@ func spawnGraveyardLights(commands *Commands, models *Models, assets *GameAssets
 			intensity = 15000
 		}
 
-		spawnFlame(commands, assets, pos.Add(glm.Vec3f{0, lantern.Max[1] * s * 0.45, 0}), 0.12, intensity, 9)
+		spawnFlame(commands, assets, pos.Add(glm.V3f(0, lantern.Max.Y*s*0.45, 0)), 0.12, intensity, 9)
 	}
 
 	post := models.Get("graveyard/lightpost-double")
 	for _, z := range []float32{front + 8, front + 22} {
 		for _, x := range []float32{-6, 6} {
-			pos := glm.Vec3f{x, 0, z}
+			pos := glm.V3f(x, 0, z)
 			ps := s * 1.6
 			spawnProp(commands, post, TransformFromXYZ(pos.XYZ()).WithScaleXYZ(ps, ps, ps), PropSettings{})
 
 			// glowing lamps only, no point light
-			for _, arm := range []float32{post.Min[2] * 0.8, post.Max[2] * 0.8} {
-				spawnFlame(commands, assets, pos.Add(glm.Vec3f{0, post.Max[1]*ps - 0.45, arm * ps}), 0.14, 0, 0)
+			for _, arm := range []float32{post.Min.Z * 0.8, post.Max.Z * 0.8} {
+				spawnFlame(commands, assets, pos.Add(glm.V3f(0, post.Max.Y*ps-0.45, arm*ps)), 0.14, 0, 0)
 			}
 		}
 	}
@@ -82,7 +82,7 @@ func spawnVegetation(commands *Commands, models *Models, rng *rand.Rand) {
 	tufts := []*Model{models.Get("survival/grass"), models.Get("survival/grass-large")}
 
 	random := func() glm.Vec3f {
-		return glm.Vec3f{(rng.Float32()*2 - 1) * (arenaHalfSize - 2), 0, (rng.Float32()*2 - 1) * (arenaHalfSize - 2)}
+		return glm.V3f((rng.Float32()*2-1)*(arenaHalfSize-2), 0, (rng.Float32()*2-1)*(arenaHalfSize-2))
 	}
 
 	for range 80 {
@@ -90,12 +90,12 @@ func spawnVegetation(commands *Commands, models *Models, rng *rand.Rand) {
 
 		// slightly above the ground, the patches are flat
 		s := scaleSurvival * (0.6 + rng.Float32()*0.5)
-		transform := TransformFromXYZ(center[0], 0.02+rng.Float32()*0.01, center[2]).WithRotation(randomYaw(rng)).WithScaleXYZ(s, 1, s)
+		transform := TransformFromXYZ(center.X, 0.02+rng.Float32()*0.01, center.Z).WithRotation(randomYaw(rng)).WithScaleXYZ(s, 1, s)
 		spawnDecor(commands, patches[rng.IntN(len(patches))], transform, NotShadowCaster{})
 
 		// tufts around the patch
 		for range 1 + rng.IntN(4) {
-			pos := center.Add(glm.Vec3f{(rng.Float32()*2 - 1) * s, 0, (rng.Float32()*2 - 1) * s})
+			pos := center.Add(glm.V3f((rng.Float32()*2-1)*s, 0, (rng.Float32()*2-1)*s))
 			ts := scaleSurvival * (0.8 + rng.Float32()*0.6)
 			spawnDecor(commands, tufts[rng.IntN(len(tufts))], TransformFromXYZ(pos.XYZ()).WithRotation(randomYaw(rng)).WithScaleXYZ(ts, ts, ts), NotShadowCaster{})
 		}
@@ -125,7 +125,7 @@ func spawnRoad(commands *Commands, models *Models, rng *rand.Rand) {
 	)
 
 	road := models.Get("graveyard/road")
-	front := graveyardCenter[2] + graveyardHalfDepth
+	front := graveyardCenter.Z + graveyardHalfDepth
 
 	// flat, so nobody trips over the edge. render only, the ground below does the physics
 	for z := float32(front + size/2); z < arenaHalfSize; z += size {
@@ -147,13 +147,13 @@ func spawnRoad(commands *Commands, models *Models, rng *rand.Rand) {
 	}
 
 	// a crash scene: two cars and a ring of cones
-	crash := glm.Vec3f{0, 0, 45}
+	crash := glm.V3f(0, 0, 45)
 	s := float32(scaleCar)
-	spawnCar(commands, models, "car/sedan", TransformFromXYZ(crash[0]-1.8, 0, crash[2]).WithRotation(glm.RotationYQuat(glm.DegToRad(70))).WithScaleXYZ(s, s, s))
-	spawnCar(commands, models, "car/taxi", TransformFromXYZ(crash[0]+2.2, 0, crash[2]+3).WithRotation(glm.RotationYQuat(glm.DegToRad(-160))).WithScaleXYZ(s, s, s))
+	spawnCar(commands, models, "car/sedan", TransformFromXYZ(crash.X-1.8, 0, crash.Z).WithRotation(glm.RotationYQuat(glm.DegToRad(70))).WithScaleXYZ(s, s, s))
+	spawnCar(commands, models, "car/taxi", TransformFromXYZ(crash.X+2.2, 0, crash.Z+3).WithRotation(glm.RotationYQuat(glm.DegToRad(-160))).WithScaleXYZ(s, s, s))
 
 	for i := range 10 {
 		angle := float32(i) * 2 * math.Pi / 10
-		cone(crash[0]+cos32(angle)*7, crash[2]+1.5+sin32(angle)*7)
+		cone(crash.X+cos32(angle)*7, crash.Z+1.5+sin32(angle)*7)
 	}
 }

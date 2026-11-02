@@ -37,13 +37,13 @@ const (
 
 var (
 	// towards the sun of the sky texture, about 74° above the horizon
-	sunDirection = glm.Vec3f{0.218, 0.963, -0.159}.Normalize()
+	sunDirection = glm.V3f(0.218, 0.963, -0.159).Normalize()
 
 	// the shadow map covers this box around the player
 	sunShadowVolumes = [3]glm.Vec3f{
-		{60, 60, 300},
-		{240, 240, 300},
-		{480, 480, 300},
+		glm.V3f(60, 60, 300),
+		glm.V3f(240, 240, 300),
+		glm.V3f(480, 480, 300),
 	}
 )
 
@@ -77,8 +77,8 @@ func spawnGround(commands *Commands, assets *GameAssets) {
 	const size = 2 * (arenaHalfSize + 60)
 
 	// the texture repeats every 6 m
-	mesh := PlaneWithSize(glm.Vec2f{size, size})
-	mesh.ComputeUV(func(p glm.Vec3f) glm.Vec2f { return glm.Vec2f{p[0] / 6, p[2] / 6} })
+	mesh := PlaneWithSize(glm.V2f(size, size))
+	mesh.ComputeUV(func(p glm.Vec3f) glm.Vec2f { return glm.V2f(p.X/6, p.Z/6) })
 	mesh.ComputeTangents()
 
 	commands.Spawn(
@@ -92,7 +92,7 @@ func spawnGround(commands *Commands, assets *GameAssets) {
 		},
 		physics.RigidBody{Type: physics.Static},
 		physics.CollisionLayers{Category: layerWorld, Mask: layerAll},
-		physics.CuboidCollider(glm.Vec3f{size / 2, 1, size / 2}).WithOffset(glm.Vec3f{0, -1, 0}),
+		physics.CuboidCollider(glm.V3f(size/2, 1, size/2)).WithOffset(glm.V3f(0, -1, 0)),
 		physics.NoDebugCollider{},
 	)
 }
@@ -110,7 +110,7 @@ func spawnSun(commands *Commands) {
 		Sun{},
 		light,
 		// lights shine along their local -z
-		NewTransform().WithRotation(glm.QuatFromRotationArc(glm.Vec3f{0, 0, -1}, sunDirection.Scale(-1))),
+		NewTransform().WithRotation(glm.QuatFromRotationArc(glm.V3f(0, 0, -1), sunDirection.Scale(-1))),
 	)
 }
 
@@ -134,14 +134,14 @@ func followSunSystem(
 
 	// snap to a grid of shadow texels, so the shadows do not shimmer while moving
 	const step = 0.5
-	center = glm.Vec3f{
-		float32(math.Round(float64(center[0]/step))) * step,
+	center = glm.V3f(
+		float32(math.Round(float64(center.X/step)))*step,
 		0,
-		float32(math.Round(float64(center[2]/step))) * step,
-	}
+		float32(math.Round(float64(center.Z/step)))*step,
+	)
 
 	for sun := range suns.Items() {
-		sunShadowVolumeHeight := sunShadowVolumes[0][2]
+		sunShadowVolumeHeight := sunShadowVolumes[0].Z
 
 		// the volume starts at the light's position and reaches along the light's direction
 		sun.Transform.Translation = center.Add(sunDirection.Scale(sunShadowVolumeHeight / 2))
@@ -213,13 +213,13 @@ func spawnArenaWalls(commands *Commands, models *Models) {
 	wall := models.Get("graveyard/brick-wall")
 
 	const wallScale = 4.0
-	length := wall.Size()[0] * wallScale
+	length := wall.Size().X * wallScale
 
 	for side := range 4 {
 		rotation := glm.RotationYQuat(glm.Rad(float64(side) * math.Pi / 2))
 
 		for offset := -arenaHalfSize + length/2; offset < arenaHalfSize; offset += length {
-			position := rotation.Transform(glm.Vec3f{offset, 0, -arenaHalfSize})
+			position := rotation.Transform(glm.V3f(offset, 0, -arenaHalfSize))
 			transform := TransformFromXYZ(position.XYZ()).WithRotation(rotation).WithScaleXYZ(wallScale, wallScale, wallScale)
 			spawnProp(commands, wall, transform, PropSettings{})
 		}
@@ -228,12 +228,12 @@ func spawnArenaWalls(commands *Commands, models *Models) {
 	// the wall model sits behind its origin, so the walls miss the corners. A pillar on the
 	// crossing of the wall center lines closes them.
 	pillar := models.Get("graveyard/pillar-square")
-	centerOffset := -(wall.Min[2] + wall.Max[2]) / 2 * wallScale
+	centerOffset := -(wall.Min.Z + wall.Max.Z) / 2 * wallScale
 	corner := arenaHalfSize + centerOffset
 
 	// twice the center offset wide, so it reaches the end of the walls, and a bit taller than the walls
-	scaleXZ := 2 * centerOffset / pillar.Size()[0]
-	scaleY := 1.3 * wall.Size()[1] * wallScale / pillar.Size()[1]
+	scaleXZ := 2 * centerOffset / pillar.Size().X
+	scaleY := 1.3 * wall.Size().Y * wallScale / pillar.Size().Y
 
 	for _, sign := range [4][2]float32{{1, 1}, {1, -1}, {-1, 1}, {-1, -1}} {
 		transform := TransformFromXYZ(sign[0]*corner, 0, sign[1]*corner).WithScaleXYZ(scaleXZ, scaleY, scaleXZ)
@@ -242,7 +242,7 @@ func spawnArenaWalls(commands *Commands, models *Models) {
 }
 
 // graveyardCenter is the center of the graveyard, the dead rise there.
-var graveyardCenter = glm.Vec3f{0, 0, -45}
+var graveyardCenter = glm.V3f(0, 0, -45)
 
 const (
 	graveyardHalfWidth = 30
@@ -279,29 +279,29 @@ func spawnGraveyard(commands *Commands, models *Models, assets *GameAssets, rng 
 				continue
 			}
 
-			pos := graveyardCenter.Add(glm.Vec3f{col + rng.Float32()*0.6 - 0.3, 0, row + rng.Float32()*0.6 - 0.3})
+			pos := graveyardCenter.Add(glm.V3f(col+rng.Float32()*0.6-0.3, 0, row+rng.Float32()*0.6-0.3))
 
 			// now and then a heavy stone tomb instead of a grave
 			if rng.Float32() < 0.08 {
-				spawnProp(commands, models.Get(tombs[rng.IntN(len(tombs))]), TransformFromXYZ(pos.Add(glm.Vec3f{0, 0, 1}).XYZ()).WithScaleXYZ(s, s, s), PropSettings{Dynamic: true, Density: 1500})
+				spawnProp(commands, models.Get(tombs[rng.IntN(len(tombs))]), TransformFromXYZ(pos.Add(glm.V3f(0, 0, 1)).XYZ()).WithScaleXYZ(s, s, s), PropSettings{Dynamic: true, Density: 1500})
 				continue
 			}
 
 			// the plot in front of the stone, flat, the dead climb through it
 			if rng.Float32() < 0.6 {
-				plot := TransformFromXYZ(pos.Add(glm.Vec3f{0, 0.01, 1.6}).XYZ()).WithScaleXYZ(s, s, s)
+				plot := TransformFromXYZ(pos.Add(glm.V3f(0, 0.01, 1.6)).XYZ()).WithScaleXYZ(s, s, s)
 				spawnDecor(commands, models.Get(plots[rng.IntN(len(plots))]), plot)
 			}
 
 			if rng.Float32() < 0.2 {
 				candle := models.Get(candles[rng.IntN(len(candles))])
-				at := pos.Add(glm.Vec3f{0.5, 0, 0.5})
+				at := pos.Add(glm.V3f(0.5, 0, 0.5))
 				spawnDecor(commands, candle, TransformFromXYZ(at.XYZ()).WithRotation(randomYaw(rng)).WithScaleXYZ(s, s, s))
-				spawnFlame(commands, assets, at.Add(glm.Vec3f{0, candle.Max[1]*s + 0.05, 0}), 0.06, 0, 0)
+				spawnFlame(commands, assets, at.Add(glm.V3f(0, candle.Max.Y*s+0.05, 0)), 0.06, 0, 0)
 			}
 
 			if rng.Float32() < 0.1 {
-				spawnProp(commands, models.Get(urns[rng.IntN(len(urns))]), TransformFromXYZ(pos.Add(glm.Vec3f{-0.6, 0, 0.4}).XYZ()).WithScaleXYZ(s, s, s), PropSettings{Dynamic: true, Density: 600})
+				spawnProp(commands, models.Get(urns[rng.IntN(len(urns))]), TransformFromXYZ(pos.Add(glm.V3f(-0.6, 0, 0.4)).XYZ()).WithScaleXYZ(s, s, s), PropSettings{Dynamic: true, Density: 600})
 			}
 
 			model := models.Get(stones[rng.IntN(len(stones))])
@@ -315,47 +315,47 @@ func spawnGraveyard(commands *Commands, models *Models, assets *GameAssets, rng 
 	// crypts at the back, a large one with an altar in the middle
 	for _, x := range []float32{-18, 18} {
 		model := models.Get("graveyard/crypt-small")
-		pos := graveyardCenter.Add(glm.Vec3f{x, 0, -graveyardHalfDepth - 3})
+		pos := graveyardCenter.Add(glm.V3f(x, 0, -graveyardHalfDepth-3))
 		spawnProp(commands, model, TransformFromXYZ(pos.XYZ()).WithScaleXYZ(3, 3, 3), PropSettings{})
 	}
 
 	large := models.Get("graveyard/crypt-large")
-	largePos := graveyardCenter.Add(glm.Vec3f{0, 0, -graveyardHalfDepth - 4})
+	largePos := graveyardCenter.Add(glm.V3f(0, 0, -graveyardHalfDepth-4))
 	spawnProp(commands, large, TransformFromXYZ(largePos.XYZ()).WithScaleXYZ(3, 3, 3), PropSettings{})
-	roofPos := largePos.Add(glm.Vec3f{0, large.Max[1] * 3, 0})
+	roofPos := largePos.Add(glm.V3f(0, large.Max.Y*3, 0))
 	spawnProp(commands, models.Get("graveyard/crypt-large-roof"), TransformFromXYZ(roofPos.XYZ()).WithScaleXYZ(3, 3, 3), PropSettings{})
 
-	altar := graveyardCenter.Add(glm.Vec3f{0, 0, -graveyardHalfDepth + 2.5})
+	altar := graveyardCenter.Add(glm.V3f(0, 0, -graveyardHalfDepth+2.5))
 	spawnProp(commands, models.Get("graveyard/altar-stone"), TransformFromXYZ(altar.XYZ()).WithScaleXYZ(s, s, s), PropSettings{})
 
 	// benches outside the gate
 	bench := models.Get("graveyard/bench")
 	for _, x := range []float32{-10, 10} {
-		pos := glm.Vec3f{x, 0, graveyardCenter[2] + graveyardHalfDepth + 4}
+		pos := glm.V3f(x, 0, graveyardCenter.Z+graveyardHalfDepth+4)
 		spawnProp(commands, bench, TransformFromXYZ(pos.XYZ()).WithRotation(glm.RotationYQuat(glm.Rad(math.Pi))).WithScaleXYZ(s, s, s), PropSettings{Dynamic: true, Density: 500})
 	}
 
 	// stone wall around the graveyard, with gaps for the dead to walk through
 	fence := models.Get("graveyard/stone-wall")
 	damaged := models.Get("graveyard/stone-wall-damaged")
-	fenceLength := fence.Size()[0] * s
+	fenceLength := fence.Size().X * s
 
 	// static pillars at the corners, the lines stop short of them. Lines that meet in a
 	// corner would overlap, and the physics would push broken segments over.
 	pillar := models.Get("graveyard/pillar-square")
-	inset := pillar.Size()[0]*s/2 + 0.05
+	inset := pillar.Size().X*s/2 + 0.05
 
 	spawnFenceLine := func(from, to glm.Vec3f) {
 		dir := to.Sub(from).Normalize()
 		from, to = from.Add(dir.Scale(inset)), to.Sub(dir.Scale(inset))
 		length := to.Sub(from).Length()
-		rotation := glm.QuatFromRotationArc(glm.Vec3f{1, 0, 0}, dir)
+		rotation := glm.QuatFromRotationArc(glm.V3f(1, 0, 0), dir)
 
 		// stretch the segments a little, so the line ends exactly at the corners
 		count := int(math.Ceil(float64(length / fenceLength)))
 		step := length / float32(count)
 		stretch := s * step / fenceLength
-		depthOffset := (fence.Min[2] + fence.Max[2]) / 2 * s
+		depthOffset := (fence.Min.Z + fence.Max.Z) / 2 * s
 
 		for idx := range count {
 			// every few segments a gap, but the corners stay closed
@@ -369,7 +369,7 @@ func spawnGraveyard(commands *Commands, models *Models, assets *GameAssets, rng 
 			}
 
 			// the model is off center in depth, put it on the line so the corners meet
-			pos := from.Add(dir.Scale((float32(idx) + 0.5) * step)).Sub(rotation.Transform(glm.Vec3f{0, 0, depthOffset}))
+			pos := from.Add(dir.Scale((float32(idx) + 0.5) * step)).Sub(rotation.Transform(glm.V3f(0, 0, depthOffset)))
 			spawnProp(commands, model, TransformFromXYZ(pos.XYZ()).WithRotation(rotation).WithScaleXYZ(stretch, s, s), PropSettings{},
 				Breakable{Model: model, Density: 800})
 		}
@@ -377,13 +377,13 @@ func spawnGraveyard(commands *Commands, models *Models, assets *GameAssets, rng 
 
 	c := graveyardCenter
 	w, d := float32(graveyardHalfWidth), float32(graveyardHalfDepth)
-	spawnFenceLine(c.Add(glm.Vec3f{-w, 0, d}), c.Add(glm.Vec3f{-4, 0, d}))
-	spawnFenceLine(c.Add(glm.Vec3f{4, 0, d}), c.Add(glm.Vec3f{w, 0, d}))
-	spawnFenceLine(c.Add(glm.Vec3f{-w, 0, -d}), c.Add(glm.Vec3f{-w, 0, d}))
-	spawnFenceLine(c.Add(glm.Vec3f{w, 0, d}), c.Add(glm.Vec3f{w, 0, -d}))
-	spawnFenceLine(c.Add(glm.Vec3f{-w, 0, -d}), c.Add(glm.Vec3f{w, 0, -d}))
+	spawnFenceLine(c.Add(glm.V3f(-w, 0, d)), c.Add(glm.V3f(-4, 0, d)))
+	spawnFenceLine(c.Add(glm.V3f(4, 0, d)), c.Add(glm.V3f(w, 0, d)))
+	spawnFenceLine(c.Add(glm.V3f(-w, 0, -d)), c.Add(glm.V3f(-w, 0, d)))
+	spawnFenceLine(c.Add(glm.V3f(w, 0, d)), c.Add(glm.V3f(w, 0, -d)))
+	spawnFenceLine(c.Add(glm.V3f(-w, 0, -d)), c.Add(glm.V3f(w, 0, -d)))
 
-	for _, corner := range []glm.Vec3f{{-w, 0, -d}, {w, 0, -d}, {-w, 0, d}, {w, 0, d}} {
+	for _, corner := range []glm.Vec3f{glm.V3f(-w, 0, -d), glm.V3f(w, 0, -d), glm.V3f(-w, 0, d), glm.V3f(w, 0, d)} {
 		spawnProp(commands, pillar, TransformFromXYZ(c.Add(corner).XYZ()).WithScaleXYZ(s, s, s), PropSettings{})
 	}
 }
@@ -396,7 +396,7 @@ func keepClear(pos glm.Vec3f) bool {
 	}
 
 	// an open field between the start and the graveyard
-	if math.Abs(float64(pos[0])) < 10 && pos[2] > -25 && pos[2] < 20 {
+	if math.Abs(float64(pos.X)) < 10 && pos.Z > -25 && pos.Z < 20 {
 		return true
 	}
 
@@ -406,21 +406,21 @@ func keepClear(pos glm.Vec3f) bool {
 	}
 
 	// the road to the south edge
-	if math.Abs(float64(pos[0])) < 6 && pos[2] > -25 {
+	if math.Abs(float64(pos.X)) < 6 && pos.Z > -25 {
 		return true
 	}
 
 	rel := pos.Sub(graveyardCenter)
-	return math.Abs(float64(rel[0])) < graveyardHalfWidth+3 && math.Abs(float64(rel[2])) < graveyardHalfDepth+6
+	return math.Abs(float64(rel.X)) < graveyardHalfWidth+3 && math.Abs(float64(rel.Z)) < graveyardHalfDepth+6
 }
 
 func randomArenaPosition(rng *rand.Rand, margin float32) glm.Vec3f {
 	for {
-		pos := glm.Vec3f{
-			(rng.Float32()*2 - 1) * (arenaHalfSize - margin),
+		pos := glm.V3f(
+			(rng.Float32()*2-1)*(arenaHalfSize-margin),
 			0,
-			(rng.Float32()*2 - 1) * (arenaHalfSize - margin),
-		}
+			(rng.Float32()*2-1)*(arenaHalfSize-margin),
+		)
 
 		if !keepClear(pos) {
 			return pos
@@ -440,9 +440,9 @@ func spawnScenery(commands *Commands, models *Models, rng *rand.Rand) {
 	}
 
 	// the models come in different sizes, scale them all to about the height of a pine
-	pineHeight := models.Get("graveyard/pine").Size()[1]
+	pineHeight := models.Get("graveyard/pine").Size().Y
 	treeScale := func(model *Model) float32 {
-		return pineHeight / model.Size()[1] * (3.5 + rng.Float32()*2)
+		return pineHeight / model.Size().Y * (3.5 + rng.Float32()*2)
 	}
 
 	for range 70 {
@@ -469,7 +469,7 @@ func spawnScenery(commands *Commands, models *Models, rng *rand.Rand) {
 
 			for offset := -distance; offset < distance; offset += 6 + rng.Float32()*3 {
 				jitter := (rng.Float32()*2 - 1) * 2
-				pos := rotation.Transform(glm.Vec3f{offset, 0, -distance - jitter})
+				pos := rotation.Transform(glm.V3f(offset, 0, -distance-jitter))
 				model := models.Get(trees[rng.IntN(len(trees))])
 				scale := treeScale(model)
 

@@ -18,7 +18,7 @@ func TestControlledCharacter(t *testing.T) {
 		byke2d.GlobalTransform{Affine: ground.Affine3()},
 		RigidBody{Type: Static},
 		CollisionLayers{Category: 1, Mask: ^uint64(0)},
-		CuboidCollider(glm.Vec3f{50, 0.5, 50}).WithOffset(glm.Vec3f{0, -0.5, 0}),
+		CuboidCollider(glm.V3f(50, 0.5, 50)).WithOffset(glm.V3f(0, -0.5, 0)),
 	})
 
 	// an upright capsule that walks along +x
@@ -39,7 +39,7 @@ func TestControlledCharacter(t *testing.T) {
 		byke2d.GlobalTransform{Affine: ghost.Affine3()},
 		RigidBody{Type: Dynamic},
 		CollisionLayers{Category: 4, Mask: 1},
-		CuboidCollider(glm.Vec3f{0.5, 0.5, 0.5}),
+		CuboidCollider(glm.V3f(0.5, 0.5, 0.5)),
 	})
 
 	query := world.Query[struct {
@@ -49,7 +49,7 @@ func TestControlledCharacter(t *testing.T) {
 
 	for range 128 {
 		if item, ok := query.Get(characterId); ok {
-			item.LinearVelocity.Vec3f = glm.Vec3f{3, item.LinearVelocity.Vec3f[1], 0}
+			item.LinearVelocity.Vec3f = glm.V3f(3, item.LinearVelocity.Vec3f.Y, 0)
 		}
 
 		world.RunSchedule(byke.FixedPreUpdate)
@@ -60,17 +60,17 @@ func TestControlledCharacter(t *testing.T) {
 	item, _ := query.Get(characterId)
 
 	// 2 s at 3 m/s, walking through the box, which does not collide with it
-	if x := item.Transform.Translation[0]; x < 5.5 || x > 6.5 {
+	if x := item.Transform.Translation.X; x < 5.5 || x > 6.5 {
 		t.Fatalf("character should have walked to x=6, is at %v", item.Transform.Translation)
 	}
 
-	up := item.Transform.Rotation.Transform(glm.Vec3f{0, 1, 0})
-	if !nearTol(up, glm.Vec3f{0, 1, 0}, 1e-3) {
+	up := item.Transform.Rotation.Transform(glm.V3f(0, 1, 0))
+	if !nearTol(up, glm.V3f(0, 1, 0), 1e-3) {
 		t.Fatalf("character should stay upright, up is %v", up)
 	}
 
 	physicsWorld, _ := world.ResourceOf[PhysicsWorld]()
-	if hit, ok := physicsWorld.CastRayMask(glm.Vec3f{3, 5, 0}, glm.Vec3f{0, -1, 0}, 10, 1); !ok || hit.Distance < 4.9 {
+	if hit, ok := physicsWorld.CastRayMask(glm.V3f(3, 5, 0), glm.V3f(0, -1, 0), 10, 1); !ok || hit.Distance < 4.9 {
 		t.Fatalf("masked ray should only hit the ground at distance 5, got %+v", hit)
 	}
 }
@@ -84,7 +84,7 @@ func TestTeleportAndDisable(t *testing.T) {
 		start,
 		byke2d.GlobalTransform{Affine: start.Affine3()},
 		RigidBody{Type: Dynamic},
-		CuboidCollider(glm.Vec3f{0.5, 0.5, 0.5}),
+		CuboidCollider(glm.V3f(0.5, 0.5, 0.5)),
 	})
 
 	query := world.Query[byke2d.Transform]()
@@ -100,12 +100,12 @@ func TestTeleportAndDisable(t *testing.T) {
 	step(2)
 
 	world.RunSystem(func(commands *byke.Commands) {
-		commands.Entity(bodyId).Insert(Disabled{}, Teleport{Position: glm.Vec3f{5, 20, 0}})
+		commands.Entity(bodyId).Insert(Disabled{}, Teleport{Position: glm.V3f(5, 20, 0)})
 	})
 	step(30)
 
 	// disabled, so it does not fall
-	if pos, _ := query.Get(bodyId); !nearTol(pos.Translation, glm.Vec3f{5, 20, 0}, 1e-3) {
+	if pos, _ := query.Get(bodyId); !nearTol(pos.Translation, glm.V3f(5, 20, 0), 1e-3) {
 		t.Fatalf("disabled body should stay at the teleport target, is at %v", pos.Translation)
 	}
 
@@ -114,7 +114,7 @@ func TestTeleportAndDisable(t *testing.T) {
 	})
 	step(30)
 
-	if pos, _ := query.Get(bodyId); pos.Translation[1] > 19 || abs(pos.Translation[0]-5) > 1e-3 {
+	if pos, _ := query.Get(bodyId); pos.Translation.Y > 19 || abs(pos.Translation.X-5) > 1e-3 {
 		t.Fatalf("enabled body should fall from the teleport target, is at %v", pos.Translation)
 	}
 }

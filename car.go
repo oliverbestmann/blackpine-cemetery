@@ -28,7 +28,7 @@ const (
 	carRespawnSecs = 15
 )
 
-var carStart = glm.Vec3f{7, 0, 14}
+var carStart = glm.V3f(7, 0, 14)
 
 // CarKind holds the driving stats of a car model.
 type CarKind struct {
@@ -92,7 +92,7 @@ func spawnCar(commands *Commands, models *Models, name string, transform Transfo
 	car := Car{
 		Health:   kind.MaxHealth,
 		Kind:     kind,
-		HitRange: max(-model.Min[2], model.Max[2])*transform.Scale[2] + 0.4,
+		HitRange: max(-model.Min.Z, model.Max.Z)*transform.Scale.Z + 0.4,
 		Home:     transform,
 	}
 
@@ -118,9 +118,9 @@ func spawnCarSystem(commands *Commands, models *Models) {
 
 // carForward is the direction the car drives to, flat on the ground. The Kenney cars face +z.
 func carForward(rotation glm.Quat) glm.Vec3f {
-	f := flat(rotation.Transform(glm.Vec3f{0, 0, 1}))
+	f := flat(rotation.Transform(glm.V3f(0, 0, 1)))
 	if f.Length() < 0.01 {
-		return glm.Vec3f{0, 0, 1}
+		return glm.V3f(0, 0, 1)
 	}
 
 	return f.Normalize()
@@ -198,9 +198,9 @@ func enterCarSystem(
 func exitCar(commands *Commands, playerId EntityId, player *Player, carId EntityId, car *Car, transform Transform) {
 	// get out on the left side
 	forward := carForward(transform.Rotation)
-	side := glm.Vec3f{forward[2], 0, -forward[0]}
+	side := glm.V3f(forward.Z, 0, -forward.X)
 	exit := transform.Translation.Add(side.Scale(2.6))
-	exit[1] = max(exit[1], playerHalfHeight+0.1)
+	exit.Y = max(exit.Y, playerHalfHeight+0.1)
 
 	player.Driving = NoEntityId
 	// the camera looks along -z
@@ -245,7 +245,7 @@ func carDamageSystem(
 			if c.Wrecked <= 0 {
 				c.Health = c.Kind.MaxHealth
 				commands.Entity(car.EntityId).Insert(physics.Teleport{
-					Position: c.Home.Translation.Add(glm.Vec3f{0, 1, 0}),
+					Position: c.Home.Translation.Add(glm.V3f(0, 1, 0)),
 					Rotation: c.Home.Rotation,
 					Rotate:   true,
 				})
@@ -264,9 +264,9 @@ func carDamageSystem(
 			// parts fly off
 			for range 8 {
 				at := car.Transform
-				at.Translation = pos.Add(randomInSphere(rng.Rand).Scale(1.5)).Add(glm.Vec3f{0, 1, 0})
+				at.Translation = pos.Add(randomInSphere(rng.Rand).Scale(1.5)).Add(glm.V3f(0, 1, 0))
 				at.Rotation = randomYaw(rng.Rand)
-				spawnGibs(commands, rng, models.Get(carDebris[rng.IntN(len(carDebris))]), at, glm.Vec3f{0, 4, 0}, 9)
+				spawnGibs(commands, rng, models.Get(carDebris[rng.IntN(len(carDebris))]), at, glm.V3f(0, 4, 0), 9)
 			}
 		}
 
@@ -282,13 +282,13 @@ func carDamageSystem(
 
 		c.Smoke = 0.05 + 0.25*max(0, c.Health)/(c.Kind.MaxHealth*0.4)
 		s := 0.4 + 0.4*rng.Float32()
-		spawnParticle(commands, assets.Sphere, assets.SmokeMaterial, pos.Add(glm.Vec3f{0, 1.2, 0}).Add(randomInSphere(rng.Rand).Scale(0.4)), Particle{
-			Velocity:   randomInSphere(rng.Rand).Add(glm.Vec3f{0, 2.5, 0}),
+		spawnParticle(commands, assets.Sphere, assets.SmokeMaterial, pos.Add(glm.V3f(0, 1.2, 0)).Add(randomInSphere(rng.Rand).Scale(0.4)), Particle{
+			Velocity:   randomInSphere(rng.Rand).Add(glm.V3f(0, 2.5, 0)),
 			Gravity:    -1,
 			Drag:       1,
 			Life:       1.2 + rng.Float32()*0.6,
-			StartScale: glm.Vec3f{s, s, s},
-			EndScale:   glm.Vec3f{s, s, s}.Scale(2),
+			StartScale: glm.V3f(s, s, s),
+			EndScale:   glm.V3f(s, s, s).Scale(2),
 		})
 	}
 }
@@ -313,7 +313,7 @@ func carVelocity(kind CarKind, velocity glm.Vec3f, forward glm.Vec3f, throttle, 
 	lateral := flat(velocity).Sub(forward.Scale(velocity.Dot(forward))).Scale(decay(6, dt))
 
 	result := forward.Scale(speed).Add(lateral)
-	result[1] = velocity[1]
+	result.Y = velocity.Y
 
 	// turning needs speed, and reverses when driving backwards
 	yawRate := steer * kind.TurnRate * clamp(speed/8, -1, 1)
@@ -352,12 +352,12 @@ func driveCarSystem(
 	dt := vt.DeltaSecs
 
 	// the player rides along, zombies chase him
-	player.Transform.Translation = car.Transform.Translation.Add(glm.Vec3f{0, 1, 0})
+	player.Transform.Translation = car.Transform.Translation.Add(glm.V3f(0, 1, 0))
 	player.Player.previous = player.Transform.Translation
 	player.Player.current = player.Transform.Translation
 
-	up := car.Transform.Rotation.Transform(glm.Vec3f{0, 1, 0})
-	if up[1] < 0.4 {
+	up := car.Transform.Rotation.Transform(glm.V3f(0, 1, 0))
+	if up.Y < 0.4 {
 		car.Car.Upside += dt
 	} else {
 		car.Car.Upside = 0
@@ -367,7 +367,7 @@ func driveCarSystem(
 	if car.Car.Upside > 1.5 {
 		car.Car.Upside = 0
 		commands.Entity(car.EntityId).Insert(physics.Teleport{
-			Position: car.Transform.Translation.Add(glm.Vec3f{0, 1.5, 0}),
+			Position: car.Transform.Translation.Add(glm.V3f(0, 1.5, 0)),
 			Rotation: glm.RotationYQuat(yawTowards(carForward(car.Transform.Rotation))),
 			Rotate:   true,
 		})
@@ -375,8 +375,8 @@ func driveCarSystem(
 		return
 	}
 
-	_, grounded := world.CastRayMask(car.Transform.Translation.Add(glm.Vec3f{0, 1, 0}), glm.Vec3f{0, -1, 0}, 2, layerWorld|layerProp)
-	if !grounded || up[1] < 0.7 {
+	_, grounded := world.CastRayMask(car.Transform.Translation.Add(glm.V3f(0, 1, 0)), glm.V3f(0, -1, 0), 2, layerWorld|layerProp)
+	if !grounded || up.Y < 0.7 {
 		return
 	}
 
@@ -401,7 +401,7 @@ func driveCarSystem(
 	velocity, yawRate := carVelocity(car.Car.Kind, car.LinearVelocity.Vec3f, carForward(car.Transform.Rotation), throttle, steer, dt)
 	car.LinearVelocity.Vec3f = velocity
 	// steer the yaw only, keep roll and pitch from collisions so the car can tip over
-	car.AngularVelocity.Vec3f[1] = yawRate
+	car.AngularVelocity.Vec3f.Y = yawRate
 }
 
 // runOverSystem kills zombies in front of a fast car.
@@ -453,14 +453,14 @@ func runOverSystem(
 			for b := range breakables.Items() {
 				offset := b.Transform.Translation.Sub(pos)
 				if flat(offset).Length() < car.Car.HitRange+1.5 && offset.Dot(velocity) > 0 {
-					breakLoose(commands, b.EntityId, b.Breakable, b.Transform, velocity.Scale(0.6), glm.Vec3f{0, 1, 0}.Cross(velocity).Scale(0.1))
+					breakLoose(commands, b.EntityId, b.Breakable, b.Transform, velocity.Scale(0.6), glm.V3f(0, 1, 0).Cross(velocity).Scale(0.1))
 				}
 			}
 		}
 
 		for z := range zombies.Items() {
 			offset := z.Transform.Translation.Sub(pos)
-			if z.Zombie.Dead || abs32(offset[1]) > 2.5 || flat(offset).Length() > car.Car.HitRange {
+			if z.Zombie.Dead || abs32(offset.Y) > 2.5 || flat(offset).Length() > car.Car.HitRange {
 				continue
 			}
 
@@ -472,7 +472,7 @@ func runOverSystem(
 			damages.Write(ZombieDamage{
 				Zombie:    z.EntityId,
 				Amount:    speed * 12,
-				Push:      velocity.Scale(0.9).Add(glm.Vec3f{0, 4 + speed*0.3, 0}),
+				Push:      velocity.Scale(0.9).Add(glm.V3f(0, 4+speed*0.3, 0)),
 				Point:     z.Transform.Translation,
 				Explosive: speed > 15,
 				Source:    SourceCar,
@@ -512,8 +512,8 @@ func carCameraSystem(
 	}
 
 	forward := carForward(car.Transform.Rotation)
-	target := car.Transform.Translation.Add(glm.Vec3f{0, 1.5, 0})
-	goal := target.Sub(forward.Scale(9)).Add(glm.Vec3f{0, 3, 0})
+	target := car.Transform.Translation.Add(glm.V3f(0, 1.5, 0))
+	goal := target.Sub(forward.Scale(9)).Add(glm.V3f(0, 3, 0))
 
 	// smooth, the car moves in fixed steps
 	t := 1 - decay(8, vt.DeltaSecs)

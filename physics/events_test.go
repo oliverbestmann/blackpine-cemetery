@@ -18,7 +18,7 @@ func TestHitsAndExplode(t *testing.T) {
 		ground,
 		byke2d.GlobalTransform{Affine: ground.Affine3()},
 		RigidBody{Type: Static},
-		CuboidCollider(glm.Vec3f{20, 0.5, 20}).WithOffset(glm.Vec3f{0, -0.5, 0}),
+		CuboidCollider(glm.V3f(20, 0.5, 20)).WithOffset(glm.V3f(0, -0.5, 0)),
 	})
 
 	// a 0.5 m crate of 125 kg, 5 m from the explosion
@@ -27,7 +27,7 @@ func TestHitsAndExplode(t *testing.T) {
 		box,
 		byke2d.GlobalTransform{Affine: box.Affine3()},
 		RigidBody{Type: Dynamic},
-		CuboidCollider(glm.Vec3f{0.25, 0.25, 0.25}),
+		CuboidCollider(glm.V3f(0.25, 0.25, 0.25)),
 	})
 
 	messages, _ := world.ResourceOf[byke.Messages[Hit]]()
@@ -44,7 +44,7 @@ func TestHitsAndExplode(t *testing.T) {
 	step(64)
 
 	landed := hits.Read()
-	if len(landed) == 0 || landed[0].Speed < 4 || landed[0].Point[1] > 0.1 {
+	if len(landed) == 0 || landed[0].Speed < 4 || landed[0].Point.Y > 0.1 {
 		t.Fatalf("expected a hit at the ground after a 1.75 m fall, got %+v", landed)
 	}
 
@@ -55,7 +55,7 @@ func TestHitsAndExplode(t *testing.T) {
 	query := world.Query[struct{ LinearVelocity LinearVelocity }]()
 	item, _ := query.Get(boxId)
 
-	if v := item.LinearVelocity.Vec3f; v[0] < 1 || v[0] > 20 {
+	if v := item.LinearVelocity.Vec3f; v.X < 1 || v.X > 20 {
 		t.Fatalf("explosion should push the box away along +x, velocity is %v", v)
 	}
 

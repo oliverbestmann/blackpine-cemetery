@@ -191,7 +191,7 @@ type GameAssets struct {
 // glowing returns a material that glows with the given color, for bloom.
 // byke adds the emissive color after exposure, so values are in output units.
 func glowing(r, g, b float32) StandardMaterial {
-	return StandardMaterial{BaseColor: ColorBlack, EmissiveScale: glm.Vec3f{r, g, b}, PerceptualRoughness: 1}
+	return StandardMaterial{BaseColor: ColorBlack, EmissiveScale: glm.V3f(r, g, b), PerceptualRoughness: 1}
 }
 
 func plain(color Color, roughness float32) StandardMaterial {

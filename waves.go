@@ -99,7 +99,7 @@ func waveSystem(
 		// the keepers step out of the big crypt, one more every keeperWaves waves
 		stats.Show(vt, fmt.Sprintf("WAVE %d\nTHE KEEPER AWAKENS", stats.Wave), 3*time.Second)
 		for i := range stats.Wave / keeperWaves {
-			pos := glm.Vec3f{float32(i)*6 - float32(stats.Wave/keeperWaves-1)*3, 0, graveyardCenter[2] - graveyardHalfDepth + 9}
+			pos := glm.V3f(float32(i)*6-float32(stats.Wave/keeperWaves-1)*3, 0, graveyardCenter.Z-graveyardHalfDepth+9)
 			spawnZombie(commands, models, ZombieKeeper, pos, 0, zombieRiseSecs*2)
 		}
 
@@ -141,17 +141,17 @@ func spawnPosition(rng *GameRng, world physics.PhysicsWorld, player glm.Vec3f) g
 		var pos glm.Vec3f
 
 		if rng.Float32() < 0.6 {
-			pos = graveyardCenter.Add(glm.Vec3f{
-				(rng.Float32()*2 - 1) * (graveyardHalfWidth - 2),
+			pos = graveyardCenter.Add(glm.V3f(
+				(rng.Float32()*2-1)*(graveyardHalfWidth-2),
 				0,
-				(rng.Float32()*2 - 1) * (graveyardHalfDepth - 2),
-			})
+				(rng.Float32()*2-1)*(graveyardHalfDepth-2),
+			))
 		} else {
-			pos = glm.Vec3f{
-				(rng.Float32()*2 - 1) * (arenaHalfSize - 5),
+			pos = glm.V3f(
+				(rng.Float32()*2-1)*(arenaHalfSize-5),
 				0,
-				(rng.Float32()*2 - 1) * (arenaHalfSize - 5),
-			}
+				(rng.Float32()*2-1)*(arenaHalfSize-5),
+			)
 		}
 
 		if flat(pos.Sub(player)).Length() <= 25 {
@@ -160,7 +160,7 @@ func spawnPosition(rng *GameRng, world physics.PhysicsWorld, player glm.Vec3f) g
 
 		// a capsule a bit larger than a brute, lifted off the ground
 		const radius = 0.7
-		blocked := world.OverlapsCapsule(pos.Add(glm.Vec3f{0, 0.1 + radius, 0}), pos.Add(glm.Vec3f{0, 2.5, 0}), radius, layerWorld|layerProp|layerCar)
+		blocked := world.OverlapsCapsule(pos.Add(glm.V3f(0, 0.1+radius, 0)), pos.Add(glm.V3f(0, 2.5, 0)), radius, layerWorld|layerProp|layerCar)
 
 		// give up eventually, a blocked zombie is better than a frozen game
 		if !blocked || try > 50 {
@@ -177,7 +177,7 @@ func spawnDemoCrowdSystem(commands *Commands, models *Models, rng *GameRng) {
 	}
 
 	for idx := range count {
-		pos := glm.Vec3f{(rng.Float32()*2 - 1) * 12, 0, -4 - rng.Float32()*20}
+		pos := glm.V3f((rng.Float32()*2-1)*12, 0, -4-rng.Float32()*20)
 		spawnZombie(commands, models, waveKind(5, rng.Float32()), pos, 0, float32(idx%2)*zombieRiseSecs*rng.Float32())
 	}
 }

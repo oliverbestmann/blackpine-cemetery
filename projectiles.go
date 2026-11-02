@@ -39,7 +39,7 @@ func spawnGrenade(commands *Commands, models *Models, muzzle, dir glm.Vec3f) {
 	center := model.Min.Add(model.Max).Scale(0.5)
 
 	// lob it a bit upwards
-	velocity := dir.Add(glm.Vec3f{0, 0.15, 0}).Normalize().Scale(grenadeSpeed)
+	velocity := dir.Add(glm.V3f(0, 0.15, 0)).Normalize().Scale(grenadeSpeed)
 
 	commands.Spawn(
 		Round{},
@@ -49,14 +49,14 @@ func spawnGrenade(commands *Commands, models *Models, muzzle, dir glm.Vec3f) {
 		model.Material,
 		physics.RigidBody{Type: physics.Dynamic, Density: 2000, Restitution: 0.45, Friction: 0.6, Bullet: true},
 		physics.CollisionLayers{Category: layerProjectile, Mask: layerWorld | layerProp | layerCar},
-		physics.SphereCollider(model.Size()[1]*0.5).WithOffset(center),
+		physics.SphereCollider(model.Size().Y*0.5).WithOffset(center),
 		physics.LinearVelocity{Vec3f: velocity},
-		physics.AngularVelocity{Vec3f: glm.Vec3f{8, 2, 0}},
+		physics.AngularVelocity{Vec3f: glm.V3f(8, 2, 0)},
 	)
 }
 
 func spawnRocket(commands *Commands, assets *GameAssets, muzzle, dir glm.Vec3f) {
-	rotation := glm.QuatFromRotationArc(glm.Vec3f{0, 0, 1}, dir)
+	rotation := glm.QuatFromRotationArc(glm.V3f(0, 0, 1), dir)
 
 	rocket := commands.Spawn(
 		Round{},
@@ -117,7 +117,7 @@ func grenadeSystem(
 		if g.Fuse < grenadeFuse-0.1 {
 			for z := range zombies.Items() {
 				offset := z.Transform.Translation.Sub(pos)
-				if z.Zombie.Rising <= 0 && abs32(offset[1]) < 2 && flat(offset).Length() < zombieRadius*z.Zombie.Scale/2.1+0.4 {
+				if z.Zombie.Rising <= 0 && abs32(offset.Y) < 2 && flat(offset).Length() < zombieRadius*z.Zombie.Scale/2.1+0.4 {
 					touching = true
 					break
 				}
@@ -164,7 +164,7 @@ func rocketSystem(
 		distance := step.Length()
 
 		hit, ok := world.CastRayMask(pos, step.Scale(1/distance), distance+0.3, hitscanMask)
-		if ok || r.Age > rocketLife || pos[1] < 0 {
+		if ok || r.Age > rocketLife || pos.Y < 0 {
 			if ok {
 				pos = hit.Point.Sub(step.Scale(0.3 / distance))
 			}
@@ -183,11 +183,11 @@ func rocketSystem(
 			r.smoke = 0.025
 			s := 0.15 + rng.Float32()*0.1
 			spawnParticle(commands, assets.Sphere, assets.SmokeMaterial, pos, Particle{
-				Velocity:   randomInSphere(rng.Rand).Scale(0.6).Add(glm.Vec3f{0, 0.5, 0}),
+				Velocity:   randomInSphere(rng.Rand).Scale(0.6).Add(glm.V3f(0, 0.5, 0)),
 				Drag:       1,
 				Life:       0.9 + rng.Float32()*0.4,
-				StartScale: glm.Vec3f{s, s, s},
-				EndScale:   glm.Vec3f{s, s, s}.Scale(0.2),
+				StartScale: glm.V3f(s, s, s),
+				EndScale:   glm.V3f(s, s, s).Scale(0.2),
 			})
 		}
 	}

@@ -48,10 +48,10 @@ func debugColliders(commands *byke.Commands, bodies byke.Query[debugBody], senso
 
 		// emissive, so the colliders stand out in dark places like the inside of the rocket
 		color := byke2d.ColorSRGBA(0.2, 0.8, 1.0, 0.4)
-		emission := glm.Vec3f{0.03, 0.6, 1}
+		emission := glm.V3f(0.03, 0.6, 1)
 		if item.Sensor.Exists() {
 			color = byke2d.ColorSRGBA(1.0, 0.3, 0.8, 0.5)
-			emission = glm.Vec3f{1, 0.07, 0.6}
+			emission = glm.V3f(1, 0.07, 0.6)
 		}
 
 		for _, shape := range item.Body.Body.GetShapes(nil) {
@@ -67,7 +67,7 @@ func debugColliders(commands *byke.Commands, bodies byke.Query[debugBody], senso
 
 			// the hull is in the unscaled body frame, the child inherits the entity's scale, undo it
 			transform := byke2d.NewTransform()
-			transform.Scale = glm.Vec3f{1, 1, 1}.Div(item.Body.scale)
+			transform.Scale = glm.V3f(1, 1, 1).Div(item.Body.scale)
 
 			commands.Spawn(
 				byke.ChildOf{Parent: item.EntityId},

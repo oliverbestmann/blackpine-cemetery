@@ -168,8 +168,8 @@ func moverSystem(
 
 			mover.state = moverState{
 				initialized:   true,
-				center1:       glm.Vec3f{0, -item.Collider.halfHeight * item.Body.scale[1], 0},
-				radius:        item.Collider.radius * max(item.Body.scale[0], item.Body.scale[2]),
+				center1:       glm.V3f(0, -item.Collider.halfHeight*item.Body.scale.Y, 0),
+				radius:        item.Collider.radius * max(item.Body.scale.X, item.Body.scale.Z),
 				filter:        b3.QueryFilter{CategoryBits: layers.Category, MaskBits: layers.Mask},
 				slideDuration: 0.2,
 			}
@@ -269,24 +269,24 @@ func (m *Mover) update(world PhysicsWorld, body b3.Body, dt float32) {
 		rayLength += stepDownLength
 	}
 
-	translation := glm.Vec3f{0, -rayLength, 0}
+	translation := glm.V3f(0, -rayLength, 0)
 	origin := toGlmVec(body.GetPosition()).Add(s.center1)
 
 	s.cast = castPogo(world, body, origin, translation, s.filter)
 
 	var pogoOffset glm.Vec3f
 
-	centerWalkable := s.cast.hit && s.cast.normal[1] >= m.MinGroundNormalY
+	centerWalkable := s.cast.hit && s.cast.normal.Y >= m.MinGroundNormalY
 	if !centerWalkable && m.SkirtPogo {
 		// the skirt turns with the direction of travel, so ties go to the leading probe
 		velocity := toGlmVec(body.GetLinearVelocity())
-		heading := glm.Vec3f{velocity[0], 0, velocity[2]}
+		heading := glm.V3f(velocity.X, 0, velocity.Z)
 		if heading.Dot(heading) < 1e-7 {
-			heading = glm.Vec3f{1, 0, 0}
+			heading = glm.V3f(1, 0, 0)
 		}
 
 		heading = heading.Normalize()
-		side := glm.Vec3f{-heading[2], 0, heading[0]}
+		side := glm.V3f(-heading.Z, 0, heading.X)
 
 		bestDisplacement := float32(math.MaxFloat32)
 		for idx := range moverSkirtCount {
@@ -297,7 +297,7 @@ func (m *Mover) update(world PhysicsWorld, body b3.Body, dt float32) {
 
 			// use the walkable result that moves the mover the least. Without one the mover
 			// keeps the central hit and slides off the steep surface
-			if result.hit && result.normal[1] >= m.MinGroundNormalY {
+			if result.hit && result.normal.Y >= m.MinGroundNormalY {
 				displacement := abs(result.fraction*rayLength - m.PogoRestLength)
 				if displacement < bestDisplacement {
 					bestDisplacement = displacement
@@ -321,7 +321,7 @@ func (m *Mover) update(world PhysicsWorld, body b3.Body, dt float32) {
 
 	if s.cast.hit {
 		// is the ground too steep to walk?
-		m.Walkable = s.cast.normal[1] >= m.MinGroundNormalY
+		m.Walkable = s.cast.normal.Y >= m.MinGroundNormalY
 
 		// the cast can still hit while jumping
 		m.OnGround = !s.jumping
@@ -349,10 +349,10 @@ func (m *Mover) update(world PhysicsWorld, body b3.Body, dt float32) {
 
 	// friction acts in the horizontal plane, the pogo owns the vertical motion
 	if m.OnGround {
-		speed := float32(math.Hypot(float64(s.velocity[0]), float64(s.velocity[2])))
+		speed := float32(math.Hypot(float64(s.velocity.X), float64(s.velocity.Z)))
 		if speed < m.MinSpeed {
-			s.velocity[0] = 0
-			s.velocity[2] = 0
+			s.velocity.X = 0
+			s.velocity.Z = 0
 		} else {
 			// linear damping above StopSpeed and a fixed reduction below
 			control := max(speed, m.StopSpeed)
@@ -360,8 +360,8 @@ func (m *Mover) update(world PhysicsWorld, body b3.Body, dt float32) {
 			// friction has units of 1/time
 			drop := control * m.Friction * dt
 			ratio := max(0, speed-drop) / speed
-			s.velocity[0] *= ratio
-			s.velocity[2] *= ratio
+			s.velocity.X *= ratio
+			s.velocity.Z *= ratio
 		}
 	}
 
@@ -379,7 +379,7 @@ func (m *Mover) update(world PhysicsWorld, body b3.Body, dt float32) {
 
 	s.moverJoint.SetMaxVelocityForce(maxForce)
 
-	desiredVelocity := glm.Vec3f{m.Direction[0], 0, m.Direction[2]}.Scale(m.MaxSpeed)
+	desiredVelocity := glm.V3f(m.Direction.X, 0, m.Direction.Z).Scale(m.MaxSpeed)
 	desiredSpeed := min(desiredVelocity.Length(), m.MaxSpeed)
 
 	var desiredDirection glm.Vec3f
@@ -396,8 +396,8 @@ func (m *Mover) update(world PhysicsWorld, body b3.Body, dt float32) {
 		}
 
 		accelSpeed := min(steer*m.Accelerate*m.MaxSpeed*dt, addSpeed)
-		s.velocity[0] += accelSpeed * desiredDirection[0]
-		s.velocity[2] += accelSpeed * desiredDirection[2]
+		s.velocity.X += accelSpeed * desiredDirection.X
+		s.velocity.Z += accelSpeed * desiredDirection.Z
 	}
 
 	normalLength := s.cast.normal.Length()

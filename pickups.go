@@ -192,7 +192,7 @@ func pickupSystem(
 
 		// spin and bob
 		item.Transform.Rotation = glm.RotationYQuat(glm.Rad(p.Age * 2))
-		item.Transform.Translation[1] = p.Height + 0.15*sin32(p.Age*3)
+		item.Transform.Translation.Y = p.Height + 0.15*sin32(p.Age*3)
 
 		if p.Age < 0.3 || player.Player.Health <= 0 {
 			continue

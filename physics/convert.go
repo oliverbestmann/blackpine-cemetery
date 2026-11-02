@@ -6,16 +6,16 @@ import (
 )
 
 func toB3Vec(v glm.Vec3f) b3.Vec3 {
-	return b3.Vec3{X: v[0], Y: v[1], Z: v[2]}
+	return b3.Vec3{X: v.X, Y: v.Y, Z: v.Z}
 }
 
 func toGlmVec(v b3.Vec3) glm.Vec3f {
-	return glm.Vec3f{v.X, v.Y, v.Z}
+	return glm.V3f(v.X, v.Y, v.Z)
 }
 
 func toB3Quat(q glm.Quat) b3.Quat {
 	v := q.Values()
-	return b3.Quat{V: b3.Vec3{X: v[0], Y: v[1], Z: v[2]}, S: v[3]}
+	return b3.Quat{V: b3.Vec3{X: v.X, Y: v.Y, Z: v.Z}, S: v.W}
 }
 
 func toGlmQuat(q b3.Quat) glm.Quat {
@@ -26,13 +26,14 @@ func toGlmQuat(q b3.Quat) glm.Quat {
 // Shear and negative scale are not supported.
 func decompose(m glm.Mat4f) (translation glm.Vec3f, rotation glm.Quat, scale glm.Vec3f) {
 	var rot glm.Mat3f
+	var lengths [3]float32
 	for col := range 3 {
-		axis := glm.Vec3f{m[col][0], m[col][1], m[col][2]}
-		scale[col] = axis.Length()
-		rot[col] = axis.Scale(1 / scale[col])
+		axis := glm.V3f(m[col][0], m[col][1], m[col][2])
+		lengths[col] = axis.Length()
+		rot[col] = axis.Scale(1 / lengths[col]).Array()
 	}
 
-	return m.Translation(), glm.QuatFromMat3(rot), scale
+	return m.Translation(), glm.QuatFromMat3(rot), glm.V3f(lengths[0], lengths[1], lengths[2])
 }
 
 // poseMatrix builds the matrix of a rigid transform, without scale.

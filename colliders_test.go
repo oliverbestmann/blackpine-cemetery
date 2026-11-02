@@ -8,7 +8,7 @@ import (
 
 func TestSliceMesh(t *testing.T) {
 	// a tall quad from y=0 to y=4, with vertices only at the top and the bottom
-	vertices := []glm.Vec3f{{-1, 0, 0}, {1, 0, 0}, {1, 4, 0}, {-1, 4, 0}}
+	vertices := []glm.Vec3f{glm.V3f(-1, 0, 0), glm.V3f(1, 0, 0), glm.V3f(1, 4, 0), glm.V3f(-1, 4, 0)}
 	indices := []uint32{0, 1, 2, 0, 2, 3}
 
 	slabs := sliceMesh(vertices, indices, 4)
@@ -24,7 +24,7 @@ func TestSliceMesh(t *testing.T) {
 
 		// every slab covers the full width and exactly its own height
 		want := float32(idx)
-		if lo[0] != -1 || hi[0] != 1 || abs32(lo[1]-want) > 1e-5 || abs32(hi[1]-want-1) > 1e-5 {
+		if lo.X != -1 || hi.X != 1 || abs32(lo.Y-want) > 1e-5 || abs32(hi.Y-want-1) > 1e-5 {
 			t.Fatalf("slab %d spans %v to %v", idx, lo, hi)
 		}
 	}

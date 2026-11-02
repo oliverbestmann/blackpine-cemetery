@@ -86,28 +86,28 @@ var weapons = [weaponCount]WeaponDef{
 		Interval: 0.09, Damage: 16, Pellets: 1, Spread: 0.015, Push: 3,
 		StartAmmo: 400, MaxAmmo: 999, PickupAmmo: 150,
 		Sound: func(s *Sounds) SoundSet { return s.ShotSmall }, Volume: 0.35, Kick: 0.012,
-		ViewOffset: glm.Vec3f{0.28, -0.25, -0.55}, ViewScale: 0.6,
+		ViewOffset: glm.V3f(0.28, -0.25, -0.55), ViewScale: 0.6,
 	},
 	DualUzi: {
 		Name: "DOUBLE UZI", Model: "blaster/blaster-c", Dual: true,
 		Interval: 0.05, Damage: 11, Pellets: 1, Spread: 0.05, Push: 2,
 		StartAmmo: 0, MaxAmmo: 999, PickupAmmo: 200,
 		Sound: func(s *Sounds) SoundSet { return s.ShotRetro }, Volume: 0.25, Kick: 0.008,
-		ViewOffset: glm.Vec3f{0.3, -0.23, -0.5}, ViewScale: 0.5,
+		ViewOffset: glm.V3f(0.3, -0.23, -0.5), ViewScale: 0.5,
 	},
 	Shotgun: {
 		Name: "SHOTGUN", Model: "blaster/blaster-d",
 		Interval: 0.7, Damage: 14, Pellets: 12, Spread: 0.09, Push: 8,
 		StartAmmo: 0, MaxAmmo: 200, PickupAmmo: 30,
 		Sound: func(s *Sounds) SoundSet { return s.ShotLarge }, Volume: 0.6, Kick: 0.08,
-		ViewOffset: glm.Vec3f{0.28, -0.25, -0.6}, ViewScale: 0.65,
+		ViewOffset: glm.V3f(0.28, -0.25, -0.6), ViewScale: 0.65,
 	},
 	Gatling: {
 		Name: "GATLING GUN", Model: "blaster/blaster-h",
 		Interval: 0.022, SpinUp: 0.6, Damage: 13, Pellets: 1, Spread: 0.04, Push: 3,
 		StartAmmo: 0, MaxAmmo: 1999, PickupAmmo: 500,
 		Sound: func(s *Sounds) SoundSet { return s.ShotSmall }, Volume: 0.18, Kick: 0.006,
-		ViewOffset: glm.Vec3f{0.3, -0.27, -0.6}, ViewScale: 0.75,
+		ViewOffset: glm.V3f(0.3, -0.27, -0.6), ViewScale: 0.75,
 	},
 	GrenadeLauncher: {
 		Name: "GRENADE LAUNCHER", Model: "blaster/blaster-k",
@@ -115,7 +115,7 @@ var weapons = [weaponCount]WeaponDef{
 		Projectile: GrenadeShot,
 		StartAmmo:  0, MaxAmmo: 150, PickupAmmo: 20,
 		Sound: func(s *Sounds) SoundSet { return s.Launch }, Volume: 0.5, Kick: 0.05,
-		ViewOffset: glm.Vec3f{0.3, -0.25, -0.6}, ViewScale: 0.65,
+		ViewOffset: glm.V3f(0.3, -0.25, -0.6), ViewScale: 0.65,
 	},
 	RocketLauncher: {
 		Name: "ROCKET LAUNCHER", Model: "blaster/blaster-r",
@@ -123,14 +123,14 @@ var weapons = [weaponCount]WeaponDef{
 		Projectile: RocketShot,
 		StartAmmo:  0, MaxAmmo: 100, PickupAmmo: 15,
 		Sound: func(s *Sounds) SoundSet { return s.Launch }, Volume: 0.6, Kick: 0.06,
-		ViewOffset: glm.Vec3f{0.3, -0.25, -0.55}, ViewScale: 0.7,
+		ViewOffset: glm.V3f(0.3, -0.25, -0.55), ViewScale: 0.7,
 	},
 	Shovel: {
 		Name: "SHOVEL", Model: "graveyard/shovel",
 		Interval: 0.45, Damage: 45, Pellets: 1, Push: 7,
 		Projectile: Melee,
 		Sound:      func(s *Sounds) SoundSet { return nil }, Kick: 0.03,
-		ViewOffset: glm.Vec3f{0.36, -0.45, -0.25}, ViewScale: 1.4,
+		ViewOffset: glm.V3f(0.36, -0.45, -0.25), ViewScale: 1.4,
 	},
 }
 
@@ -325,7 +325,7 @@ func spawnViewModels(commands *Commands, models *Models, assets *GameAssets, cam
 			transform := NewTransform()
 			if def.Projectile == Melee {
 				// the grip at the top of the handle is the pivot
-				grip := shovelHold.Transform(glm.Vec3f{0, model.Max[1] * 0.9, 0})
+				grip := shovelHold.Transform(glm.V3f(0, model.Max.Y*0.9, 0))
 				transform = TransformFromXYZ(grip.Scale(-1).XYZ()).WithRotation(shovelHold)
 			}
 
@@ -383,7 +383,7 @@ func viewModelSystem(
 
 	speed := flat(player.LinearVelocity.Vec3f).Length() / playerSpeed
 	t := float32(vt.Elapsed.Seconds())
-	bob := glm.Vec3f{sin32(t*9) * 0.015 * speed, float32(math.Abs(float64(sin32(t*9)))) * 0.02 * speed, 0}
+	bob := glm.V3f(sin32(t*9)*0.015*speed, float32(math.Abs(float64(sin32(t*9))))*0.02*speed, 0)
 
 	for gun := range guns.Items() {
 		def := weapons[gun.ViewModel.Kind]
@@ -397,7 +397,7 @@ func viewModelSystem(
 
 		offset := def.ViewOffset
 		if gun.ViewModel.Side == 1 {
-			offset[0] = -offset[0]
+			offset.X = -offset.X
 		}
 
 		recoil := arsenal.recoil
@@ -405,7 +405,7 @@ func viewModelSystem(
 			recoil *= 0.3
 		}
 
-		offset = offset.Add(bob).Add(glm.Vec3f{0, -arsenal.raise * 0.4, recoil * 0.15})
+		offset = offset.Add(bob).Add(glm.V3f(0, -arsenal.raise*0.4, recoil*0.15))
 
 		rotation := glm.RotationXQuat(glm.Rad(recoil * 0.5))
 		if def.Projectile == Melee {
@@ -414,13 +414,13 @@ func viewModelSystem(
 
 		// dead: the gun drops out of the hands
 		if dead := player.Player.DeadFor; dead > 0 {
-			offset = offset.Add(glm.Vec3f{0, -3 * dead * dead, 0.3 * dead})
+			offset = offset.Add(glm.V3f(0, -3*dead*dead, 0.3*dead))
 			rotation = rotation.Mul(glm.RotationXQuat(glm.Rad(-2 * dead))).Mul(glm.RotationZQuat(glm.Rad(dead)))
 		}
 		if def.Projectile == Melee && arsenal.cooldown > 0 {
 			// a jab forward and down, out and back over one swing
 			swing := sin32(math.Pi * (1 - arsenal.cooldown/def.Interval))
-			offset = offset.Add(glm.Vec3f{-0.15 * swing, 0.05 * swing, -0.4 * swing})
+			offset = offset.Add(glm.V3f(-0.15*swing, 0.05*swing, -0.4*swing))
 			rotation = glm.RotationYQuat(glm.Rad(0.35 * swing)).Mul(glm.RotationXQuat(glm.Rad(-0.3 * swing)))
 		}
 
@@ -431,7 +431,7 @@ func viewModelSystem(
 
 		gun.Transform.Translation = offset
 		gun.Transform.Rotation = rotation
-		gun.Transform.Scale = glm.Vec3f{def.ViewScale, def.ViewScale, def.ViewScale}
+		gun.Transform.Scale = glm.V3f(def.ViewScale, def.ViewScale, def.ViewScale)
 	}
 }
 
@@ -453,16 +453,16 @@ func muzzleFlashSystem(vt VirtualTime, arsenal *Arsenal, flashes Query[struct {
 		if glow, ok := glows.Get(item.Flash.Glow); ok {
 			s := max(strength*0.12*def.ViewScale, 1e-4)
 			glow.Translation = offset
-			glow.Scale = glm.Vec3f{s, s, s * 2}
+			glow.Scale = glm.V3f(s, s, s*2)
 		}
 	}
 }
 
 // muzzleOffset is the muzzle position in the camera frame. side 1 is the left gun of dual weapons.
 func muzzleOffset(def WeaponDef, side int) glm.Vec3f {
-	offset := def.ViewOffset.Add(glm.Vec3f{0, 0.06 * def.ViewScale, -0.45 * def.ViewScale})
+	offset := def.ViewOffset.Add(glm.V3f(0, 0.06*def.ViewScale, -0.45*def.ViewScale))
 	if def.Dual && side == 1 {
-		offset[0] = -offset[0]
+		offset.X = -offset.X
 	}
 
 	return offset
@@ -528,7 +528,7 @@ func fireSystem(
 		for range def.Pellets {
 			spread := glm.RotationYQuat(glm.Rad((rng.Float32()*2 - 1) * def.Spread)).
 				Mul(glm.RotationXQuat(glm.Rad((rng.Float32()*2 - 1) * def.Spread)))
-			dir := rotation.Mul(spread).Transform(glm.Vec3f{0, 0, -1})
+			dir := rotation.Mul(spread).Transform(glm.V3f(0, 0, -1))
 
 			switch def.Projectile {
 			case Hitscan:
@@ -597,8 +597,8 @@ func fireHitscan(
 				Gravity:    4,
 				Drag:       3,
 				Life:       0.35,
-				StartScale: glm.Vec3f{0.12, 0.12, 0.12},
-				EndScale:   glm.Vec3f{0.02, 0.02, 0.02},
+				StartScale: glm.V3f(0.12, 0.12, 0.12),
+				EndScale:   glm.V3f(0.02, 0.02, 0.02),
 			})
 		}
 	}
@@ -624,7 +624,7 @@ func swingMelee(
 
 	for idx := range rays {
 		yaw := glm.Rad((float32(idx)/(rays-1)*2 - 1) * 0.45)
-		dir := rotation.Mul(glm.RotationYQuat(yaw)).Transform(glm.Vec3f{0, 0, -1})
+		dir := rotation.Mul(glm.RotationYQuat(yaw)).Transform(glm.V3f(0, 0, -1))
 
 		hit, ok := world.CastRayMask(origin, dir, meleeRange, hitscanMask)
 		if !ok || struck[hit.Entity] {
@@ -636,7 +636,7 @@ func swingMelee(
 		damages.Write(ZombieDamage{
 			Zombie: hit.Entity,
 			Amount: def.Damage,
-			Push:   dir.Scale(def.Push).Add(glm.Vec3f{0, 2, 0}),
+			Push:   dir.Scale(def.Push).Add(glm.V3f(0, 2, 0)),
 			Point:  hit.Point,
 			Source: SourceMelee,
 		})
@@ -663,7 +663,7 @@ func spawnTracer(commands *Commands, assets *GameAssets, from, to glm.Vec3f) {
 
 	// a streak that flies along the bullet path
 	streak := min(length, 6)
-	rotation := glm.QuatFromRotationArc(glm.Vec3f{0, 0, 1}, dir)
+	rotation := glm.QuatFromRotationArc(glm.V3f(0, 0, 1), dir)
 
 	commands.Spawn(
 		Round{},
@@ -677,8 +677,8 @@ func spawnTracer(commands *Commands, assets *GameAssets, from, to glm.Vec3f) {
 		Particle{
 			Velocity:   dir.Scale(min(400, length*20)),
 			Life:       min(0.06, length/400),
-			StartScale: glm.Vec3f{0.025, 0.025, streak},
-			EndScale:   glm.Vec3f{0.01, 0.01, streak},
+			StartScale: glm.V3f(0.025, 0.025, streak),
+			EndScale:   glm.V3f(0.01, 0.01, streak),
 		},
 	)
 }

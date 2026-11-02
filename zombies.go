@@ -157,7 +157,7 @@ func spawnZombie(commands *Commands, models *Models, kind ZombieKind, position g
 	stats := zombieKinds[kind]
 	model := models.Get(stats.model)
 
-	height := model.Size()[1] * stats.scale
+	height := model.Size().Y * stats.scale
 	radius := zombieRadius * stats.scale / 2.1
 	length := max(0.1, height-2*radius)
 	halfHeight := height / 2
@@ -166,14 +166,14 @@ func spawnZombie(commands *Commands, models *Models, kind ZombieKind, position g
 	layers := physics.CollisionLayers{Category: layerZombie, Mask: layerWorld | layerProp | layerPlayer | layerZombie | layerCar}
 	if kind == ZombieGhost {
 		// ghosts fly through everything but each other
-		y = ghostCruiseHeight + position[1]
+		y = ghostCruiseHeight + position.Y
 		layers = physics.CollisionLayers{Category: layerFlyer, Mask: layerFlyer}
 		rising = 0
 	}
 
 	zombieId := commands.Spawn(
 		Round{},
-		TransformFromXYZ(position[0], y, position[2]),
+		TransformFromXYZ(position.X, y, position.Z),
 		physics.RigidBody{Type: physics.Dynamic, LockRotation: true, Friction: 0.05, Density: 300},
 		physics.ControlledVelocity{},
 		layers,
@@ -202,7 +202,7 @@ func spawnZombie(commands *Commands, models *Models, kind ZombieKind, position g
 		Visual:     visual,
 		Parts:      parts,
 		halfHeight: halfHeight,
-		Phase:      float32(position[0]),
+		Phase:      float32(position.X),
 	})
 }
 
@@ -266,7 +266,7 @@ func zombieSteerSystem(
 
 		if z.Rising > 0 {
 			z.Rising -= dt
-			item.LinearVelocity.Vec3f = glm.Vec3f{0, item.LinearVelocity.Vec3f[1], 0}
+			item.LinearVelocity.Vec3f = glm.V3f(0, item.LinearVelocity.Vec3f.Y, 0)
 			continue
 		}
 
@@ -285,8 +285,8 @@ func zombieSteerSystem(
 
 				for i := range keeperRaiseCount {
 					angle := glm.Rad(float32(i)*2*math.Pi/keeperRaiseCount + rng.Float32())
-					at := pos.Add(glm.Vec3f{cos32(float32(angle)), 0, sin32(float32(angle))}.Scale(4 + 2*rng.Float32()))
-					at[1] = 0
+					at := pos.Add(glm.V3f(cos32(float32(angle)), 0, sin32(float32(angle))).Scale(4 + 2*rng.Float32()))
+					at.Y = 0
 					spawnZombie(commands, models, ZombieWalker, at, yawTowards(target.Sub(at)), zombieRiseSecs)
 				}
 			}
@@ -302,7 +302,7 @@ func zombieSteerSystem(
 		z.Knockback = z.Knockback.Scale(decay(4, dt))
 
 		velocity = velocity.Add(z.Knockback)
-		velocity[1] = item.LinearVelocity.Vec3f[1]
+		velocity.Y = item.LinearVelocity.Vec3f.Y
 		item.LinearVelocity.Vec3f = velocity
 
 		// attack the player when close
@@ -332,13 +332,13 @@ func steerGhost(z *Zombie, pos glm.Vec3f, velocity *physics.LinearVelocity, play
 	switch {
 	case z.Attack > zombieAttackSecs:
 		// climbing away after a hit
-		goal = pos.Sub(toPlayer.Normalize().Scale(5)).Add(glm.Vec3f{0, 6, 0})
+		goal = pos.Sub(toPlayer.Normalize().Scale(5)).Add(glm.V3f(0, 6, 0))
 	case distance < ghostDiveRange && z.Attack <= 0:
-		goal = target.Add(glm.Vec3f{0, 0.3, 0})
+		goal = target.Add(glm.V3f(0, 0.3, 0))
 	default:
 		// circle a bit while closing in
-		side := glm.Vec3f{-toPlayer[2], 0, toPlayer[0]}.Normalize().Scale(6 * sin32(z.Phase*0.3))
-		goal = target.Add(side).Add(glm.Vec3f{0, ghostCruiseHeight, 0})
+		side := glm.V3f(-toPlayer.Z, 0, toPlayer.X).Normalize().Scale(6 * sin32(z.Phase*0.3))
+		goal = target.Add(side).Add(glm.V3f(0, ghostCruiseHeight, 0))
 	}
 
 	dir := goal.Sub(pos)
@@ -359,8 +359,8 @@ func steerGhost(z *Zombie, pos glm.Vec3f, velocity *physics.LinearVelocity, play
 	v := dir.Scale(speed).Add(z.Knockback)
 
 	// never below the ground
-	if pos[1] < 1.5 {
-		v[1] = max(v[1], 2)
+	if pos.Y < 1.5 {
+		v.Y = max(v.Y, 2)
 	}
 
 	velocity.Vec3f = v
@@ -397,10 +397,10 @@ func zombieAnimateSystem(
 			continue
 		}
 
-		height := model.Size()[1] * z.Scale
+		height := model.Size().Y * z.Scale
 		rise := clamp(z.Rising/zombieRiseSecs, 0, 1)
 		bob := float32(math.Abs(float64(sin32(z.Phase)))) * 0.06 * z.Scale
-		visual.Translation[1] = -z.halfHeight - rise*height + bob
+		visual.Translation.Y = -z.halfHeight - rise*height + bob
 		visual.Rotation = glm.RotationYQuat(z.Yaw).Mul(glm.RotationZQuat(glm.Rad(sin32(z.Phase) * 0.08)))
 
 		swing := sin32(z.Phase) * 0.7
@@ -484,7 +484,7 @@ func zombieDamageSystem(
 		playAt(commands, budget, assets.Sounds.Splat, damage.Point, 1)
 
 		model := models.Get(zombieKinds[z.Kind].model)
-		visual := TransformFromXYZ(item.Transform.Translation.Add(glm.Vec3f{0, -z.halfHeight, 0}).XYZ()).
+		visual := TransformFromXYZ(item.Transform.Translation.Add(glm.V3f(0, -z.halfHeight, 0)).XYZ()).
 			WithRotation(glm.RotationYQuat(z.Yaw)).
 			WithScaleXYZ(z.Scale, z.Scale, z.Scale)
 

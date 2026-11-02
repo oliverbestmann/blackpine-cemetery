@@ -13,11 +13,11 @@ func TestOverlayColor(t *testing.T) {
 		damaged, health float32
 		want            glm.Vec4f
 	}{
-		{0, playerMaxHealth, glm.Vec4f{0, 0, 0, 1}},
-		{0.4, 80, glm.Vec4f{1, 0, 0, 1}},   // just hit
-		{0.2, 80, glm.Vec4f{0.5, 0, 0, 1}}, // flash fades
-		{0, 15, glm.Vec4f{0, 0.5, 0, 1}},   // low health
-		{0, 0, glm.Vec4f{1, 1, 0, 1}},      // dead
+		{0, playerMaxHealth, glm.V4f(0, 0, 0, 1)},
+		{0.4, 80, glm.V4f(1, 0, 0, 1)},   // just hit
+		{0.2, 80, glm.V4f(0.5, 0, 0, 1)}, // flash fades
+		{0, 15, glm.V4f(0, 0.5, 0, 1)},   // low health
+		{0, 0, glm.V4f(1, 1, 0, 1)},      // dead
 	}
 
 	for _, c := range cases {
@@ -28,7 +28,7 @@ func TestOverlayColor(t *testing.T) {
 }
 
 func TestMarkerPlacement(t *testing.T) {
-	half := glm.Vec2f{889, 500}
+	half := glm.V2f(889, 500)
 	projection := PerspectiveProjection{Fov: glm.DegToRad(80), Near: 0.05, Far: 1000}.ToMat4f(half)
 
 	place := func(pitch float32, target glm.Vec3f) (glm.Vec2f, glm.Rad) {
@@ -39,27 +39,27 @@ func TestMarkerPlacement(t *testing.T) {
 	}
 
 	// ahead: on the floor below the crosshair, pointing up
-	pos, angle := place(0, glm.Vec3f{0, 0, -10})
-	if math.Abs(float64(pos[0])) > 1 || pos[1] > -100 || pos[1] < -half[1]+60 || math.Abs(float64(angle)) > 1e-3 {
+	pos, angle := place(0, glm.V3f(0, 0, -10))
+	if math.Abs(float64(pos.X)) > 1 || pos.Y > -100 || pos.Y < -half.Y+60 || math.Abs(float64(angle)) > 1e-3 {
 		t.Errorf("ahead: %v %v", pos, angle)
 	}
 
 	// ahead and to the right: on the floor right of the center. A floor arrow pointing away from
 	// the player lies in a vertical plane through the eye, so it still points up on screen.
-	pos, angle = place(0, glm.Vec3f{5, 0, -10})
-	if pos[0] < 10 || pos[1] > -100 || math.Abs(float64(angle)) > 1e-3 {
+	pos, angle = place(0, glm.V3f(5, 0, -10))
+	if pos.X < 10 || pos.Y > -100 || math.Abs(float64(angle)) > 1e-3 {
 		t.Errorf("right: %v %v", pos, angle)
 	}
 
 	// behind: at the bottom edge, pointing down
-	pos, angle = place(0, glm.Vec3f{-1, 0, 10})
-	if pos[1] != -half[1]+60 || pos[0] > -half[0]/2 || math.Abs(float64(angle)) < 3 {
+	pos, angle = place(0, glm.V3f(-1, 0, 10))
+	if pos.Y != -half.Y+60 || pos.X > -half.X/2 || math.Abs(float64(angle)) < 3 {
 		t.Errorf("behind: %v %v", pos, angle)
 	}
 
 	// looking up, the floor is out of view: at the bottom edge, pointing up
-	pos, angle = place(70, glm.Vec3f{0, 0, -10})
-	if pos != (glm.Vec2f{0, -half[1] + 60}) || angle != 0 {
+	pos, angle = place(70, glm.V3f(0, 0, -10))
+	if pos != (glm.V2f(0, -half.Y+60)) || angle != 0 {
 		t.Errorf("looking up: %v %v", pos, angle)
 	}
 }
@@ -73,10 +73,10 @@ func TestMarkerAngle(t *testing.T) {
 		target glm.Vec3f
 		angle  float64
 	}{
-		{glm.Vec3f{-10, 0, 0}, 0},           // ahead
-		{glm.Vec3f{0, 5, -10}, math.Pi / 2}, // right
-		{glm.Vec3f{0, 0, 10}, -math.Pi / 2}, // left
-		{glm.Vec3f{10, 0, 0}, math.Pi},      // behind
+		{glm.V3f(-10, 0, 0), 0},           // ahead
+		{glm.V3f(0, 5, -10), math.Pi / 2}, // right
+		{glm.V3f(0, 0, 10), -math.Pi / 2}, // left
+		{glm.V3f(10, 0, 0), math.Pi},      // behind
 	}
 
 	for _, c := range cases {

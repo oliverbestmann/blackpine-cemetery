@@ -7,7 +7,7 @@ import (
 )
 
 func TestCarAcceleratesToMaxSpeed(t *testing.T) {
-	forward := glm.Vec3f{0, 0, 1}
+	forward := glm.V3f(0, 0, 1)
 
 	var velocity glm.Vec3f
 	for range 600 {
@@ -20,8 +20,8 @@ func TestCarAcceleratesToMaxSpeed(t *testing.T) {
 }
 
 func TestCarBrakesAndReverses(t *testing.T) {
-	forward := glm.Vec3f{0, 0, 1}
-	velocity := glm.Vec3f{0, 0, 10}
+	forward := glm.V3f(0, 0, 1)
+	velocity := glm.V3f(0, 0, 10)
 
 	for range 600 {
 		velocity, _ = carVelocity(defaultCarKind, velocity, forward, -1, 0, 1.0/60)
@@ -33,31 +33,31 @@ func TestCarBrakesAndReverses(t *testing.T) {
 }
 
 func TestCarGripKillsSliding(t *testing.T) {
-	forward := glm.Vec3f{0, 0, 1}
-	velocity := glm.Vec3f{10, -2, 0}
+	forward := glm.V3f(0, 0, 1)
+	velocity := glm.V3f(10, -2, 0)
 
 	for range 60 {
 		velocity, _ = carVelocity(defaultCarKind, velocity, forward, 0, 0, 1.0/60)
 	}
 
-	if abs32(velocity[0]) > 0.1 {
+	if abs32(velocity.X) > 0.1 {
 		t.Fatalf("sideways sliding should stop, got %v", velocity)
 	}
 
-	if velocity[1] != -2 {
+	if velocity.Y != -2 {
 		t.Fatalf("vertical velocity is left to physics, got %v", velocity)
 	}
 }
 
 func TestCarSteering(t *testing.T) {
-	forward := glm.Vec3f{0, 0, 1}
+	forward := glm.V3f(0, 0, 1)
 
 	if _, yaw := carVelocity(defaultCarKind, glm.Vec3f{}, forward, 0, 1, 1.0/60); yaw != 0 {
 		t.Fatalf("a standing car does not turn, got %v", yaw)
 	}
 
-	_, ahead := carVelocity(defaultCarKind, glm.Vec3f{0, 0, 10}, forward, 0, 1, 1.0/60)
-	_, back := carVelocity(defaultCarKind, glm.Vec3f{0, 0, -10}, forward, 0, 1, 1.0/60)
+	_, ahead := carVelocity(defaultCarKind, glm.V3f(0, 0, 10), forward, 0, 1, 1.0/60)
+	_, back := carVelocity(defaultCarKind, glm.V3f(0, 0, -10), forward, 0, 1, 1.0/60)
 	if ahead <= 0 || back >= 0 {
 		t.Fatalf("steering reverses when backing up, got %v and %v", ahead, back)
 	}

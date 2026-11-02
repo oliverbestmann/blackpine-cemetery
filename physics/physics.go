@@ -136,7 +136,7 @@ func CylinderCollider(radius, height float32) Collider {
 	for idx := range cylinderSides {
 		angle := 2 * math.Pi * float64(idx) / cylinderSides
 		x, z := radius*float32(math.Cos(angle)), radius*float32(math.Sin(angle))
-		points = append(points, glm.Vec3f{x, -height / 2, z}, glm.Vec3f{x, height / 2, z})
+		points = append(points, glm.V3f(x, -height/2, z), glm.V3f(x, height/2, z))
 	}
 
 	return HullCollider(points)
@@ -290,7 +290,7 @@ func constructorColliders(
 		slog.Warn("No meshes found for ColliderConstructorHierarchy", slog.Int("entity", int(entityId)))
 	}
 
-	one := glm.Vec3f{1, 1, 1}
+	one := glm.V3f(1, 1, 1)
 
 	var colliders []scaledCollider
 
@@ -499,9 +499,9 @@ func meshCollider(mesh *byke2d.Mesh, transform glm.Mat4f) Collider {
 }
 
 func determinant(m glm.Mat4f) float32 {
-	a := glm.Vec3f{m[0][0], m[0][1], m[0][2]}
-	b := glm.Vec3f{m[1][0], m[1][1], m[1][2]}
-	c := glm.Vec3f{m[2][0], m[2][1], m[2][2]}
+	a := glm.V3f(m[0][0], m[0][1], m[0][2])
+	b := glm.V3f(m[1][0], m[1][1], m[1][2])
+	c := glm.V3f(m[2][0], m[2][1], m[2][2])
 	return a.Cross(b).Dot(c)
 }
 
@@ -513,24 +513,24 @@ func addShape(body b3.Body, def b3.ShapeDef, bodyType BodyType, c Collider, scal
 		c = boundingBoxCollider(c.vertices)
 	}
 
-	absScale := glm.Vec3f{abs(scale[0]), abs(scale[1]), abs(scale[2])}
-	maxScale := max(absScale[0], absScale[1], absScale[2])
+	absScale := glm.V3f(abs(scale.X), abs(scale.Y), abs(scale.Z))
+	maxScale := max(absScale.X, absScale.Y, absScale.Z)
 
 	switch c.kind {
 	case sphereCollider:
 		body.CreateSphereShape(def, b3.Sphere{Radius: c.radius * maxScale})
 
 	case capsuleCollider:
-		h := c.halfHeight * absScale[1]
+		h := c.halfHeight * absScale.Y
 		body.CreateCapsuleShape(def, b3.Capsule{
 			Center1: b3.Vec3{Y: -h},
 			Center2: b3.Vec3{Y: h},
-			Radius:  c.radius * max(absScale[0], absScale[2]),
+			Radius:  c.radius * max(absScale.X, absScale.Z),
 		})
 
 	case cuboidCollider:
 		half, center := cuboidBox(c, scale)
-		box := b3.MakeOffsetBoxHull(half[0], half[1], half[2], toB3Vec(center))
+		box := b3.MakeOffsetBoxHull(half.X, half.Y, half.Z, toB3Vec(center))
 		body.CreateHullShape(def, &box.Base)
 
 	case hullCollider:
@@ -587,11 +587,11 @@ const maxHullVertices = 44
 
 // cuboidBox returns the half extents and center of a cuboid collider with scale applied.
 func cuboidBox(c Collider, scale glm.Vec3f) (half, center glm.Vec3f) {
-	absScale := glm.Vec3f{abs(scale[0]), abs(scale[1]), abs(scale[2])}
+	absScale := glm.V3f(abs(scale.X), abs(scale.Y), abs(scale.Z))
 
 	// box3d can't handle flat boxes
 	const minHalfExtent = 0.005
-	half = c.halfExtents.Mul(absScale).Max(glm.Vec3f{minHalfExtent, minHalfExtent, minHalfExtent})
+	half = c.halfExtents.Mul(absScale).Max(glm.V3f(minHalfExtent, minHalfExtent, minHalfExtent))
 	return half, c.offset.Mul(scale)
 }
 

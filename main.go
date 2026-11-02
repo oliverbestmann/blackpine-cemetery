@@ -50,7 +50,7 @@ func main() {
 	windowConfig.Title = "Blackpine Cemetery"
 	app.InsertResource(windowConfig)
 	app.InsertResource(ShadowMapConfig{Size: 2048})
-	app.InsertResource(GlobalSpatialScale{Scale: glm.Vec3f{1, 1, 1}.Scale(spatialScale)})
+	app.InsertResource(GlobalSpatialScale{Scale: glm.V3f(1, 1, 1).Scale(spatialScale)})
 	app.InsertResource(GlobalAmbientLightNone)
 
 	app.AddPlugin(physics.Plugin)
@@ -152,7 +152,7 @@ func spawnLoadingScreenSystem(commands *Commands) {
 		Camera2d,
 		ClearColor{Color: ColorSRGBA(0.08, 0.02, 0.02, 1)},
 		OrthographicProjection{
-			ViewportOrigin: glm.Vec2f{0.5, 0.5},
+			ViewportOrigin: glm.V2f(0.5, 0.5),
 			ScalingMode:    ScalingModeAutoMin{MinWidth: 1000, MinHeight: 1000},
 		},
 		DespawnOnExitState(GameStateLoading),

@@ -133,7 +133,7 @@ func explosionSystem(
 				continue
 			}
 
-			dir := offset.Scale(1 / max(distance, 0.1)).Add(glm.Vec3f{0, 0.8, 0}).Normalize()
+			dir := offset.Scale(1 / max(distance, 0.1)).Add(glm.V3f(0, 0.8, 0)).Normalize()
 
 			damages.Write(ZombieDamage{
 				Zombie:    z.EntityId,
@@ -168,7 +168,7 @@ func explosionSystem(
 			// it tips away from the blast
 			away := offset.Scale(1 / max(distance, 0.1))
 			strength := 1 - distance/(ex.Radius*0.6)
-			breakLoose(commands, b.EntityId, b.Breakable, b.Transform, away.Scale(3*strength), glm.Vec3f{0, 1, 0}.Cross(away).Scale(0.5+1.5*strength))
+			breakLoose(commands, b.EntityId, b.Breakable, b.Transform, away.Scale(3*strength), glm.V3f(0, 1, 0).Cross(away).Scale(0.5+1.5*strength))
 		}
 
 		for player := range players.Items() {
@@ -202,7 +202,7 @@ func spawnExplosionEffect(commands *Commands, assets *GameAssets, rng *GameRng, 
 
 	commands.Spawn(
 		Round{},
-		TransformFromXYZ(pos.Add(glm.Vec3f{0, 1, 0}).XYZ()),
+		TransformFromXYZ(pos.Add(glm.V3f(0, 1, 0)).XYZ()),
 		PointLight{Color: ColorSRGB(1, 0.55, 0.2), Intensity: 0, Range: 40},
 		FadingLight{Intensity: 4e6 * size, Life: 0.6},
 	)
@@ -211,11 +211,11 @@ func spawnExplosionEffect(commands *Commands, assets *GameAssets, rng *GameRng, 
 	for range 6 {
 		s := (1.5 + rng.Float32()*1.5) * size
 		spawnParticle(commands, assets.Sphere, assets.FireMaterial, pos.Add(randomInSphere(rng.Rand).Scale(size)), Particle{
-			Velocity:   randomInSphere(rng.Rand).Scale(3).Add(glm.Vec3f{0, 3, 0}),
+			Velocity:   randomInSphere(rng.Rand).Scale(3).Add(glm.V3f(0, 3, 0)),
 			Drag:       3,
 			Life:       0.25 + rng.Float32()*0.2,
-			StartScale: glm.Vec3f{s, s, s}.Scale(0.5),
-			EndScale:   glm.Vec3f{s, s, s}.Scale(1.4),
+			StartScale: glm.V3f(s, s, s).Scale(0.5),
+			EndScale:   glm.V3f(s, s, s).Scale(1.4),
 		})
 	}
 
@@ -223,24 +223,24 @@ func spawnExplosionEffect(commands *Commands, assets *GameAssets, rng *GameRng, 
 	for range 5 {
 		s := (0.5 + 0.6*rng.Float32()) * size
 		spawnParticle(commands, assets.Sphere, assets.SmokeMaterial, pos.Add(randomInSphere(rng.Rand).Scale(size*1.5)), Particle{
-			Velocity:   randomInSphere(rng.Rand).Scale(2).Add(glm.Vec3f{0, 3, 0}),
+			Velocity:   randomInSphere(rng.Rand).Scale(2).Add(glm.V3f(0, 3, 0)),
 			Gravity:    -1,
 			Drag:       1.5,
 			Life:       1 + rng.Float32()*0.6,
-			StartScale: glm.Vec3f{s, s, s},
-			EndScale:   glm.Vec3f{s, s, s}.Scale(0.1),
+			StartScale: glm.V3f(s, s, s),
+			EndScale:   glm.V3f(s, s, s).Scale(0.1),
 		})
 	}
 
 	// sparks and burning debris
 	for range 24 {
-		spawnParticle(commands, assets.Cube, assets.FireMaterial, pos.Add(glm.Vec3f{0, 0.3, 0}), Particle{
-			Velocity:   randomInSphere(rng.Rand).Scale(18).Add(glm.Vec3f{0, 8, 0}),
+		spawnParticle(commands, assets.Cube, assets.FireMaterial, pos.Add(glm.V3f(0, 0.3, 0)), Particle{
+			Velocity:   randomInSphere(rng.Rand).Scale(18).Add(glm.V3f(0, 8, 0)),
 			Gravity:    15,
 			Drag:       0.5,
 			Life:       0.6 + rng.Float32()*0.6,
-			StartScale: glm.Vec3f{0.12, 0.12, 0.12},
-			EndScale:   glm.Vec3f{0.03, 0.03, 0.03},
+			StartScale: glm.V3f(0.12, 0.12, 0.12),
+			EndScale:   glm.V3f(0.03, 0.03, 0.03),
 			Bounce:     true,
 		})
 	}

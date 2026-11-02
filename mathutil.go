@@ -9,12 +9,12 @@ import (
 
 // flat removes the vertical component.
 func flat(v glm.Vec3f) glm.Vec3f {
-	return glm.Vec3f{v[0], 0, v[2]}
+	return glm.V3f(v.X, 0, v.Z)
 }
 
 // yawTowards returns the yaw that turns +z towards dir.
 func yawTowards(dir glm.Vec3f) glm.Rad {
-	return glm.Rad(math.Atan2(float64(dir[0]), float64(dir[2])))
+	return glm.Rad(math.Atan2(float64(dir.X), float64(dir.Z)))
 }
 
 // turnTowards turns angle towards target by at most step, the short way round.
@@ -39,7 +39,7 @@ func decay(rate, dt float32) float32 {
 // randomInSphere returns a random point in the unit sphere.
 func randomInSphere(rng *rand.Rand) glm.Vec3f {
 	for {
-		v := glm.Vec3f{rng.Float32()*2 - 1, rng.Float32()*2 - 1, rng.Float32()*2 - 1}
+		v := glm.V3f(rng.Float32()*2-1, rng.Float32()*2-1, rng.Float32()*2-1)
 		if v.Length() <= 1 {
 			return v
 		}
