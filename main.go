@@ -90,6 +90,7 @@ func gamePlugin(app *App) {
 	playerPlugin(app)
 	hudPlugin(app)
 	zombiesPlugin(app)
+	navPlugin(app)
 	gibsPlugin(app)
 	wavesPlugin(app)
 	particlesPlugin(app)

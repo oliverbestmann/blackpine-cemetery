@@ -206,21 +206,12 @@ func spawnZombie(commands *Commands, models *Models, kind ZombieKind, position g
 	})
 }
 
-// zombieVelocity returns the walk velocity of a zombie at pos towards target.
-func zombieVelocity(pos, target glm.Vec3f, speed float32) glm.Vec3f {
-	dir := flat(target.Sub(pos))
-	if dir.Length() < 0.01 {
-		return glm.Vec3f{}
-	}
-
-	return dir.Normalize().Scale(speed)
-}
-
 func zombieSteerSystem(
 	vt VirtualTime,
 	commands *Commands,
 	models *Models,
 	rng *GameRng,
+	nav *ZombieNav,
 	players Query[struct {
 		Player    *Player
 		Transform Transform
@@ -292,7 +283,10 @@ func zombieSteerSystem(
 			}
 		}
 
-		velocity := zombieVelocity(pos, target, z.Speed)
+		var velocity glm.Vec3f
+		if dir := nav.direction(pos, target); dir.Length() > 0.01 {
+			velocity = dir.Normalize().Scale(z.Speed)
+		}
 
 		// turn towards the walk direction
 		if velocity.Length() > 0.1 {
